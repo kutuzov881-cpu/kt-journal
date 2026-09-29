@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Печень — сегменты по Couinaud (радиологический вид)</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --border: #cbd5e1;
+            --text: #0f172a;
+            --muted: #64748b;
+            --primary: #3b82f6;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --radius: 16px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--card);
+            padding: 14px 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header .badge {
+            background: var(--danger);
+            color: #fff;
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .toolbar button:hover {
+            background: var(--border);
+            transform: translateY(-2px);
+        }
+        .toolbar .primary { background: var(--primary); color: #fff; border: none; }
+        .toolbar .primary:hover { background: #2563eb; }
+        .toolbar .success { background: var(--success); color: #fff; border: none; }
+        .toolbar .success:hover { background: #16a34a; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            flex: 1;
+        }
+        @media (max-width: 1000px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-header {
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header .count {
+            font-weight: 400;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+        .card-body {
+            padding: 16px 20px;
+            flex: 1;
+            overflow: auto;
+            max-height: 700px;
+        }
+
+        .slices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 8px;
+            background: #fafcff;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .slice-wrapper {
+            background: #fff;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .slice-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .slice-label .level-badge {
+            background: var(--primary);
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+
+        .slice-wrapper svg {
+            width: 100%;
+            height: auto;
+            max-width: 500px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .slice-wrapper svg .segment {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            stroke: #1e293b;
+            stroke-width: 1.8;
+            opacity: 0.9;
+        }
+        .slice-wrapper svg .segment:hover {
+            opacity: 1;
+            filter: brightness(1.08) drop-shadow(0 0 6px rgba(59, 130, 246, 0.2));
+        }
+        .slice-wrapper svg .segment.selected {
+            stroke: #2563eb;
+            stroke-width: 3.5;
+            filter: drop-shadow(0 0 14px rgba(59, 130, 246, 0.5));
+            opacity: 1;
+        }
+        .slice-wrapper svg .segment.pathology {
+            stroke: #dc2626;
+            stroke-width: 3.5;
+            filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.6));
+            animation: patho-pulse 1.2s ease-in-out infinite;
+            opacity: 1;
+        }
+
+        @keyframes patho-pulse {
+            0%, 100% { filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.3)); }
+            50% { filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.8)); }
+        }
+
+        .slice-wrapper svg .segment-label {
+            font-size: 13px;
+            font-weight: 700;
+            fill: #0f172a;
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0 1px 4px rgba(255, 255, 255, 0.9);
+        }
+
+        /* === ОВЕРЛЕЙ ПОД МОДАЛКОЙ === */
+        .pathology-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+            display: none;
+        }
+        .pathology-overlay.show { display: block; }
+
+        /* === МОДАЛЬНОЕ ОКНО ВЫБОРА ПАТОЛОГИИ (по центру) === */
+        .pathology-dropdown {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            border: 2px solid var(--primary);
+            border-radius: 14px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            padding: 16px;
+            z-index: 9999;
+            min-width: 320px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+            animation: dropIn 0.2s ease;
+        }
+        .pathology-dropdown.show { display: block; }
+
+        @keyframes dropIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .pathology-dropdown .dropdown-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .pathology-dropdown .dropdown-item {
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+            margin-bottom: 4px;
+        }
+        .pathology-dropdown .dropdown-item:hover { background: #f1f5f9; }
+        .pathology-dropdown .dropdown-item .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .pathology-dropdown .dropdown-item.norma {
+            background: #f0fdf4;
+            border: 1px solid var(--success);
+            font-weight: 600;
+        }
+        .pathology-dropdown .dropdown-item.custom {
+            background: #fef3c7;
+            border: 1px solid var(--warning);
+        }
+        .pathology-dropdown .close-dropdown {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            cursor: pointer;
+            font-size: 1.3rem;
+            color: var(--muted);
+            background: none;
+            border: none;
+            padding: 2px 8px;
+            border-radius: 6px;
+            line-height: 1;
+        }
+        .pathology-dropdown .close-dropdown:hover { background: #f1f5f9; color: var(--danger); }
+
+        /* Правая колонка — описания */
+        .protocol-section { margin-bottom: 20px; }
+        .protocol-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .selected-pathology-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+        }
+        .selected-pathology-card.norma-card {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+        .selected-pathology-card .sp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .selected-pathology-card .sp-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .selected-pathology-card .sp-remove {
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 1.1rem;
+            background: none;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .selected-pathology-card .sp-remove:hover { background: var(--danger); color: #fff; }
+        .selected-pathology-card .sp-segments {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .selected-pathology-card .sp-segments span {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .ct-description {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            font-family: 'Segoe UI', sans-serif;
+            background: #fff;
+            color: var(--text);
+            resize: vertical;
+        }
+        .ct-description:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .pattern-builder {
+            background: #fffbeb;
+            border: 1px dashed var(--warning);
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 16px;
+        }
+        .pattern-builder .pb-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #92400e;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pattern-builder input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            background: #fff;
+        }
+        .pattern-builder input:focus { outline: none; border-color: var(--warning); }
+        .pattern-builder textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            background: #fff;
+            resize: vertical;
+        }
+        .pattern-builder textarea:focus { outline: none; border-color: var(--warning); }
+        .pattern-builder .pb-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pattern-builder button {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+        }
+        .pattern-builder .btn-save { background: var(--warning); color: #fff; }
+        .pattern-builder .btn-save:hover { background: #d97706; }
+        .pattern-builder .btn-clear { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+        .custom-patterns-list {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .custom-pattern-tag {
+            background: #fef3c7;
+            border: 1px solid var(--warning);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #92400e;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .custom-pattern-tag .remove-pattern {
+            cursor: pointer;
+            font-weight: 700;
+            opacity: 0.7;
+        }
+        .custom-pattern-tag .remove-pattern:hover { opacity: 1; color: var(--danger); }
+
+        .final-protocol {
+            width: 100%;
+            min-height: 200px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            font-family: 'Segoe UI', monospace;
+            background: #fafcff;
+            color: var(--text);
+            resize: vertical;
+            margin-top: 12px;
+        }
+        .final-protocol:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .status-bar {
+            margin-top: 24px;
+            padding: 12px 20px;
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            font-size: 0.8rem;
+            color: var(--muted);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--text);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 10001;
+            font-size: 0.9rem;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 700px) {
+            body { padding: 12px; }
+            .header { flex-direction: column; align-items: stretch; }
+            .toolbar { justify-content: stretch; }
+            .toolbar button {
+                flex: 1;
+                justify-content: center;
+                font-size: 0.7rem;
+                padding: 6px 10px;
+            }
+            .card-body { max-height: 500px; padding: 12px; }
+            .slice-wrapper svg .segment-label { font-size: 10px; }
+            .pathology-dropdown {
+                min-width: 90vw;
+                max-width: 95vw;
+                max-height: 85vh;
+            }
+        }
+
+        @media print {
+            .toolbar, .status-bar, .pathology-dropdown, .pathology-overlay, .pattern-builder { display: none !important; }
+            .slice-wrapper svg .segment { cursor: default !important; }
+            .slice-wrapper svg .segment.selected {
+                stroke: #000 !important; stroke-width: 2.5 !important; filter: none !important;
+            }
+            .slice-wrapper svg .segment.pathology {
+                stroke: #000 !important; stroke-width: 3 !important; filter: none !important; animation: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div>
+            <h1>🧬 <span>Печень — сегменты по Couinaud</span></h1>
+            <span class="badge">Радиологический вид (КТ/МРТ)</span>
+        </div>
+        <div class="toolbar">
+            <button class="success" onclick="resetAll()">🔄 Сбросить</button>
+            <button class="primary" onclick="generateFinalProtocol()">📋 Итоговый протокол</button>
+            <button onclick="copyToClipboard()">📋 Копировать</button>
+            <button onclick="window.print()">🖨 Печать</button>
+            <button class="success" onclick="sendToParent()" style="background:linear-gradient(135deg,#22c55e,#16a34a);">📥 Вставить в КТ-Журнал</button>
+        </div>
+    </header>
+
+    <div class="main-grid">
+
+        <div class="card">
+            <div class="card-header">
+                <span>📍 Срезы печени (кликни на сегмент → выбери патологию)</span>
+                <span class="count" id="segmentsCount">Выбрано: 0</span>
+            </div>
+            <div class="card-body">
+                <div class="slices-container" id="slicesContainer">
+
+                    <div class="slice-wrapper" data-slice="D">
+                        <div class="slice-label">
+                            <span class="level-badge">D</span>
+                            <span>Висцеральная поверхность</span>
+                        </div>
+                        <svg viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Срез D печени">
+                            <path d="M450 100 Q460 60 420 40 Q360 15 280 20 Q200 25 130 40 Q70 55 40 90 Q20 130 30 180 Q50 220 100 240 Q160 260 240 255 Q320 250 380 220 Q430 190 450 140 Q455 120 450 100Z" 
+                                  fill="none" stroke="#1e293b" stroke-width="2" opacity="0.2"/>
+                            
+                            <path class="segment" data-segment="S6" role="button" tabindex="0" aria-label="Сегмент 6"
+                                  d="M120 70 Q85 65 60 85 Q40 110 35 145 Q33 180 50 210 Q70 235 105 240 Q140 242 155 215 Q165 190 160 150 Q155 110 140 85 Q130 73 120 70Z"
+                                  fill="#4ade80"/>
+                            <text class="segment-label" x="100" y="160">VI</text>
+
+                            <path class="segment" data-segment="S5" role="button" tabindex="0" aria-label="Сегмент 5"
+                                  d="M230 65 Q175 55 125 65 Q85 77 65 110 Q55 145 70 180 Q90 210 135 215 Q175 217 200 190 Q220 165 220 125 Q220 90 230 65Z"
+                                  fill="#86efac"/>
+                            <text class="segment-label" x="140" y="140">V</text>
+
+                            <path class="segment" data-segment="S4b" role="button" tabindex="0" aria-label="Сегмент 4b"
+                                  d="M325 70 Q285 60 235 65 Q195 73 175 100 Q165 130 180 160 Q200 185 240 190 Q280 192 305 170 Q325 150 325 115 Q325 90 325 70Z"
+                                  fill="#facc15"/>
+                            <text class="segment-label" x="245" y="130">IVb</text>
+
+                            <path class="segment" data-segment="S3" role="button" tabindex="0" aria-label="Сегмент 3"
+                                  d="M435 75 Q415 60 375 65 Q345 70 330 95 Q325 125 340 155 Q360 180 400 185 Q430 187 450 165 Q465 145 460 115 Q455 90 435 75Z"
+                                  fill="#fde047"/>
+                            <text class="segment-label" x="395" y="130">III</text>
+                        </svg>
+                    </div>
+
+                    <div class="slice-wrapper" data-slice="C">
+                        <div class="slice-label">
+                            <span class="level-badge">C</span>
+                            <span>Средний уровень</span>
+                        </div>
+                        <svg viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Срез C печени">
+                            <path d="M450 100 Q460 60 420 40 Q360 15 280 20 Q200 25 130 40 Q70 55 40 90 Q20 130 30 180 Q50 220 100 240 Q160 260 240 255 Q320 250 380 220 Q430 190 450 140 Q455 120 450 100Z" 
+                                  fill="none" stroke="#1e293b" stroke-width="2" opacity="0.2"/>
+                            
+                            <path class="segment" data-segment="S6" role="button" tabindex="0" aria-label="Сегмент 6"
+                                  d="M115 65 Q80 60 55 80 Q35 105 30 140 Q28 175 45 205 Q65 230 100 235 Q135 237 150 210 Q160 185 155 145 Q150 105 135 80 Q125 68 115 65Z"
+                                  fill="#4ade80"/>
+                            <text class="segment-label" x="95" y="155">VI</text>
+
+                            <path class="segment" data-segment="S5" role="button" tabindex="0" aria-label="Сегмент 5"
+                                  d="M225 60 Q170 50 120 60 Q80 72 60 105 Q50 140 65 175 Q85 205 130 210 Q170 212 195 185 Q215 160 215 120 Q215 85 225 60Z"
+                                  fill="#86efac"/>
+                            <text class="segment-label" x="135" y="135">V</text>
+
+                            <path class="segment" data-segment="S4b" role="button" tabindex="0" aria-label="Сегмент 4b"
+                                  d="M320 65 Q280 55 230 60 Q190 68 170 95 Q160 125 175 155 Q195 180 235 185 Q275 187 300 165 Q320 145 320 110 Q320 85 320 65Z"
+                                  fill="#facc15"/>
+                            <text class="segment-label" x="245" y="125">IVb</text>
+
+                            <path class="segment" data-segment="S3" role="button" tabindex="0" aria-label="Сегмент 3"
+                                  d="M430 70 Q410 55 370 60 Q340 65 325 90 Q320 120 335 150 Q355 175 390 180 Q425 182 445 160 Q460 140 455 110 Q450 85 430 70Z"
+                                  fill="#fde047"/>
+                            <text class="segment-label" x="390" y="125">III</text>
+                        </svg>
+                    </div>
+
+                    <div class="slice-wrapper" data-slice="A">
+                        <div class="slice-label">
+                            <span class="level-badge">A</span>
+                            <span>Диафрагмальная поверхность</span>
+                        </div>
+                        <svg viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Срез A печени">
+                            <path d="M450 100 Q460 60 420 40 Q360 15 280 20 Q200 25 130 40 Q70 55 40 90 Q20 130 30 180 Q50 220 100 240 Q160 260 240 255 Q320 250 380 220 Q430 190 450 140 Q455 120 450 100Z" 
+                                  fill="none" stroke="#1e293b" stroke-width="2" opacity="0.2"/>
+                            
+                            <path class="segment" data-segment="S7" role="button" tabindex="0" aria-label="Сегмент 7"
+                                  d="M105 55 Q70 50 45 70 Q25 95 20 130 Q18 165 35 195 Q55 220 90 225 Q125 227 140 200 Q150 175 145 135 Q140 95 125 70 Q115 58 105 55Z"
+                                  fill="#22c55e"/>
+                            <text class="segment-label" x="85" y="145">VII</text>
+
+                            <path class="segment" data-segment="S8" role="button" tabindex="0" aria-label="Сегмент 8"
+                                  d="M215 50 Q160 40 110 50 Q70 62 50 95 Q40 130 55 165 Q75 195 120 200 Q160 202 185 175 Q205 150 205 110 Q205 75 215 50Z"
+                                  fill="#16a34a"/>
+                            <text class="segment-label" x="120" y="125">VIII</text>
+
+                            <path class="segment" data-segment="S4a" role="button" tabindex="0" aria-label="Сегмент 4a"
+                                  d="M310 55 Q270 45 220 50 Q180 58 160 85 Q150 115 165 145 Q185 170 225 175 Q265 177 290 155 Q310 135 310 100 Q310 75 310 55Z"
+                                  fill="#fef08a"/>
+                            <text class="segment-label" x="230" y="115">IVa</text>
+
+                            <path class="segment" data-segment="S2" role="button" tabindex="0" aria-label="Сегмент 2"
+                                  d="M420 60 Q400 45 360 50 Q330 55 315 80 Q310 110 325 140 Q345 165 380 170 Q415 172 435 150 Q450 130 445 100 Q440 75 420 60Z"
+                                  fill="#fcd34d"/>
+                            <text class="segment-label" x="375" y="115">II</text>
+
+                            <path class="segment" data-segment="S1" role="button" tabindex="0" aria-label="Сегмент 1"
+                                  d="M260 135 Q235 125 210 130 Q195 140 200 160 Q210 175 235 178 Q255 180 265 165 Q270 150 260 135Z"
+                                  fill="#fbbf24"/>
+                            <text class="segment-label" x="230" y="158">I</text>
+                        </svg>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>📝 Описания патологий и протокол</span>
+                <span class="count" id="pathologyCount">Патологий: 0</span>
+            </div>
+            <div class="card-body">
+
+                <div class="protocol-section">
+                    <div class="protocol-section-title">🎯 Выбранные патологии и КТ-описания</div>
+                    <div id="selectedPathologiesContainer">
+                        <div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">
+                            Кликни на сегмент слева → выбери патологию из списка
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pattern-builder">
+                    <div class="pb-title">✨ Создать свой паттерн</div>
+                    <input type="text" id="patternName" placeholder="Название (например: 'Атипичная гемангиома')" />
+                    <textarea id="patternDescription" placeholder="КТ-описание паттерна..."></textarea>
+                    <div class="pb-buttons">
+                        <button class="btn-save" onclick="saveCustomPattern()">💾 Сохранить паттерн</button>
+                        <button class="btn-clear" onclick="clearPatternForm()">Очистить</button>
+                    </div>
+                    <div class="custom-patterns-list" id="customPatternsList"></div>
+                </div>
+
+                <div class="protocol-section" style="margin-top: 20px;">
+                    <div class="protocol-section-title">📋 Итоговый протокол</div>
+                    <textarea class="final-protocol" id="finalProtocol" spellcheck="true" aria-label="Итоговый протокол">ПЕЧЕНЬ:
+  Не увеличена. Контуры чёткие, ровные.
+  Паренхима однородной структуры, плотность не снижена (55–60 HU).
+  Внутрипеченочные желчные протоки не расширены.
+  Сосудистый рисунок не изменён.
+
+[Очаговые изменения:]
+  — не выявлены.
+
+ЗАКЛЮЧЕНИЕ:
+  Патологических изменений печени не выявлено.</textarea>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Затемнённый оверлей -->
+    <div class="pathology-overlay" id="pathologyOverlay" onclick="closeDropdown()"></div>
+
+    <!-- Модалка выбора патологии -->
+    <div class="pathology-dropdown" id="pathologyDropdown">
+        <button class="close-dropdown" onclick="closeDropdown()">×</button>
+        <div class="dropdown-title" id="dropdownTitle">Выбери патологию для сегмента</div>
+        <div id="dropdownItems"></div>
+    </div>
+
+    <div class="status-bar">
+        <span>💡 <span id="statusMessage">Кликни на сегмент → появится список патологий. Выбери нужную.</span></span>
+        <span>📌 <span id="statusCount">Сегментов: 0 | Патологий: 0</span></span>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const defaultPathologies = [
+                {
+                    id: 'hemangioma',
+                    name: 'Гемангиома',
+                    color: '#f59e0b',
+                    description: 'Гиподенсное образование с чёткими контурами. В артериальную фазу — периферическое узловое накопление контраста. В портально-венозную и отсроченную фазы — постепенное центральное заполнение («заполнение от периферии к центру»). Плотность в отсроченную фазу изо- или гиперденсна паренхиме. Не имеет капсулы. Характерен симптом «яркой вспышки».'
+                },
+                {
+                    id: 'hcc',
+                    name: 'ГЦР (гепатоцеллюлярный рак)',
+                    color: '#dc2626',
+                    description: 'Гиперваскулярное образование в артериальную фазу с интенсивным накоплением контраста. В портально-венозную фазу — быстрое вымывание контраста («wash-out»), образование становится гиподенсным относительно паренхимы. Характерна фиброзная капсула с накоплением контраста в отсроченную фазу. Часто на фоне цирроза. Возможны инвазия в воротную вену и тромбоз.'
+                },
+                {
+                    id: 'metastasis',
+                    name: 'Метастаз',
+                    color: '#7c3aed',
+                    description: 'Множественные (реже одиночные) гиподенсные очаги. В артериальную фазу — периферическое кольцевидное накопление контраста. В портально-венозную фазу — симптом «мишени» (гиподенсный центр с гиперденсным ободком). Неровные контуры, перифокальный отёк. Часто множественное поражение обеих долей. Возможны кальцинаты (метастазы КРР, нейроэндокринных опухолей).'
+                },
+                {
+                    id: 'fnh',
+                    name: 'FNH (фокальная узловая гиперплазия)',
+                    color: '#22c55e',
+                    description: 'Изо- или слегка гиперденсное образование в нативную фазу. В артериальную фазу — интенсивное гомогенное накопление контраста (кроме центрального рубца). В портально-венозную фазу — становится изоденсным паренхиме. Характерен центральный рубец с накоплением контраста в отсроченную фазу (гиперденсный рубец). Чёткие контуры, без капсулы. Часто субкапсулярно.'
+                },
+                {
+                    id: 'cyst',
+                    name: 'Киста',
+                    color: '#3b82f6',
+                    description: 'Гиподенсное образование с чёткими ровными контурами. Плотность 0–20 HU (жидкостная). Тонкая стенка, не накапливает контраст ни в одну фазу. Нет внутренних перегородок и пристеночных узлов (простая киста). При сложной кисте — перегородки, пристеночные узлы, накопление контраста. Возможны кальцинаты в стенке.'
+                },
+                {
+                    id: 'abscess',
+                    name: 'Абсцесс',
+                    color: '#ef4444',
+                    description: 'Гиподенсное образование с неровными контурами и перифокальным отёком. В артериальную фазу — кольцевидное накопление контраста по периферии («симптом двойного контура»). Центральная некротическая полость не накапливает контраст. Возможен газ в полости (пузырьки газа с горизонтальным уровнем). Утолщённая стенка. Часто множественные.'
+                },
+                {
+                    id: 'cirrhosis',
+                    name: 'Цирроз',
+                    color: '#f97316',
+                    description: 'Диффузное поражение паренхимы. Неровные, бугристые контуры печени. Диффузная неоднородность структуры, множественные регенераторные узлы. Признаки портальной гипертензии: расширение воротной вены (>13 мм), варикозное расширение вен пищевода, спленомегалия, асцит. Возможна атрофия правой доли и гипертрофия хвостатой доли.'
+                },
+                {
+                    id: 'norma',
+                    name: '✅ Норма',
+                    color: '#22c55e',
+                    description: 'Паренхима однородной структуры, плотность 55–60 HU в нативную фазу. Контуры чёткие, ровные. Внутрипеченочные желчные протоки не расширены. Сосудистый рисунок не изменён. Очаговых образований не выявлено. Воротная вена обычного калибра, проходима. Перипеченочная клетчатка не изменена.',
+                    isNorma: true
+                }
+            ];
+
+            const state = {
+                selectedSegments: new Set(),
+                pathologies: {},
+                currentDropdownSegment: null,
+                customPatterns: []
+            };
+
+            function loadCustomPatterns() {
+                try {
+                    const saved = localStorage.getItem('liver_custom_patterns');
+                    if (saved) {
+                        state.customPatterns = JSON.parse(saved);
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки паттернов:', e);
+                }
+            }
+
+            function saveCustomPatternsToStorage() {
+                try {
+                    localStorage.setItem('liver_custom_patterns', JSON.stringify(state.customPatterns));
+                } catch (e) {
+                    console.error('Ошибка сохранения паттернов:', e);
+                }
+            }
+
+            const segments = document.querySelectorAll('.segment');
+            const segmentsCount = document.getElementById('segmentsCount');
+            const pathologyCount = document.getElementById('pathologyCount');
+            const statusMessage = document.getElementById('statusMessage');
+            const statusCount = document.getElementById('statusCount');
+            const toast = document.getElementById('toast');
+            const dropdown = document.getElementById('pathologyDropdown');
+            const overlay = document.getElementById('pathologyOverlay');
+            const dropdownTitle = document.getElementById('dropdownTitle');
+            const dropdownItems = document.getElementById('dropdownItems');
+            const selectedPathologiesContainer = document.getElementById('selectedPathologiesContainer');
+            const finalProtocol = document.getElementById('finalProtocol');
+
+            function showToast(message) {
+                toast.textContent = message;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            }
+
+            function getAllPathologies() {
+                return [...defaultPathologies, ...state.customPatterns];
+            }
+
+            function openDropdown(segmentName, event) {
+                state.currentDropdownSegment = segmentName;
+                dropdownTitle.textContent = `Патология для сегмента ${segmentName}`;
+                
+                let html = '';
+                getAllPathologies().forEach(p => {
+                    const isCustom = state.customPatterns.some(cp => cp.id === p.id);
+                    const className = p.isNorma ? 'dropdown-item norma' : (isCustom ? 'dropdown-item custom' : 'dropdown-item');
+                    html += `<div class="${className}" data-pathology-id="${p.id}" onclick="selectPathology('${p.id}')">
+                        <span class="color-dot" style="background:${p.color};"></span>
+                        <span>${p.name}</span>
+                    </div>`;
+                });
+                dropdownItems.innerHTML = html;
+
+                if (overlay) overlay.classList.add('show');
+                dropdown.classList.add('show');
+            }
+
+            window.closeDropdown = function() {
+                if (overlay) overlay.classList.remove('show');
+                dropdown.classList.remove('show');
+                state.currentDropdownSegment = null;
+            };
+
+            window.selectPathology = function(pathologyId) {
+                const segName = state.currentDropdownSegment;
+                if (!segName) return;
+
+                const pathology = getAllPathologies().find(p => p.id === pathologyId);
+                if (!pathology) return;
+
+                if (!state.pathologies[pathologyId]) {
+                    state.pathologies[pathologyId] = {
+                        pathology: pathology,
+                        segments: new Set(),
+                        description: pathology.description
+                    };
+                }
+                state.pathologies[pathologyId].segments.add(segName);
+                state.selectedSegments.add(segName);
+
+                segments.forEach(s => {
+                    if (s.dataset.segment === segName) {
+                        s.classList.add('selected');
+                        if (!pathology.isNorma) {
+                            s.classList.add('pathology');
+                        }
+                    }
+                });
+
+                closeDropdown();
+                updateUI();
+                showToast(`➕ ${pathology.name} → ${segName}`);
+                statusMessage.textContent = `➕ Добавлена «${pathology.name}» в сегмент ${segName}`;
+            };
+
+            segments.forEach(seg => {
+                seg.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const segName = this.dataset.segment;
+                    if (!segName) return;
+                    openDropdown(segName, e);
+                });
+
+                seg.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openDropdown(this.dataset.segment, { target: this });
+                    }
+                });
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.pathology-dropdown') && !e.target.closest('.segment')) {
+                    if (dropdown.classList.contains('show')) {
+                        closeDropdown();
+                    }
+                }
+            });
+
+            window.removeSegmentFromPathology = function(pathologyId, segName) {
+                if (state.pathologies[pathologyId]) {
+                    state.pathologies[pathologyId].segments.delete(segName);
+                    state.selectedSegments.delete(segName);
+                    
+                    if (state.pathologies[pathologyId].segments.size === 0) {
+                        delete state.pathologies[pathologyId];
+                    }
+                    
+                    let stillHasPathology = false;
+                    for (const pid in state.pathologies) {
+                        if (state.pathologies[pid].segments.has(segName)) {
+                            stillHasPathology = true;
+                            break;
+                        }
+                    }
+                    segments.forEach(s => {
+                        if (s.dataset.segment === segName) {
+                            if (!stillHasPathology) {
+                                s.classList.remove('selected', 'pathology');
+                            }
+                        }
+                    });
+                    
+                    updateUI();
+                    showToast(`🗑 Удалён ${segName}`);
+                }
+            };
+
+            window.removePathology = function(pathologyId) {
+                if (state.pathologies[pathologyId]) {
+                    const segs = Array.from(state.pathologies[pathologyId].segments);
+                    segs.forEach(s => state.selectedSegments.delete(s));
+                    delete state.pathologies[pathologyId];
+                    
+                    segments.forEach(s => {
+                        if (segs.includes(s.dataset.segment)) {
+                            let stillHas = false;
+                            for (const pid in state.pathologies) {
+                                if (state.pathologies[pid].segments.has(s.dataset.segment)) {
+                                    stillHas = true;
+                                    break;
+                                }
+                            }
+                            if (!stillHas) {
+                                s.classList.remove('selected', 'pathology');
+                            }
+                        }
+                    });
+                    
+                    updateUI();
+                    showToast('🗑 Патология удалена');
+                }
+            };
+
+            window.updatePathologyDescription = function(pathologyId, newDesc) {
+                if (state.pathologies[pathologyId]) {
+                    state.pathologies[pathologyId].description = newDesc;
+                    updateFinalProtocol();
+                }
+            };
+
+            window.saveCustomPattern = function() {
+                const name = document.getElementById('patternName').value.trim();
+                const description = document.getElementById('patternDescription').value.trim();
+                
+                if (!name) {
+                    showToast('⚠️ Введи название паттерна');
+                    return;
+                }
+                if (!description) {
+                    showToast('⚠️ Введи описание паттерна');
+                    return;
+                }
+
+                const newPattern = {
+                    id: 'custom_' + Date.now(),
+                    name: name,
+                    color: '#f59e0b',
+                    description: description,
+                    isCustom: true
+                };
+
+                state.customPatterns.push(newPattern);
+                saveCustomPatternsToStorage();
+                
+                document.getElementById('patternName').value = '';
+                document.getElementById('patternDescription').value = '';
+                
+                renderCustomPatterns();
+                showToast('✨ Паттерн сохранён! Теперь он есть в списке выбора.');
+            };
+
+            window.clearPatternForm = function() {
+                document.getElementById('patternName').value = '';
+                document.getElementById('patternDescription').value = '';
+            };
+
+            window.removeCustomPattern = function(patternId) {
+                state.customPatterns = state.customPatterns.filter(p => p.id !== patternId);
+                saveCustomPatternsToStorage();
+                renderCustomPatterns();
+                showToast('🗑 Паттерн удалён');
+            };
+
+            function renderCustomPatterns() {
+                const container = document.getElementById('customPatternsList');
+                if (state.customPatterns.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+                let html = '<div style="width:100%; font-size:0.75rem; color:#92400e; margin-bottom:4px; font-weight:600;">Сохранённые паттерны:</div>';
+                state.customPatterns.forEach(p => {
+                    html += `<span class="custom-pattern-tag">${p.name} <span class="remove-pattern" onclick="removeCustomPattern('${p.id}')">×</span></span>`;
+                });
+                container.innerHTML = html;
+            }
+
+            function updateUI() {
+                segmentsCount.textContent = `Выбрано: ${state.selectedSegments.size}`;
+                let totalPath = Object.keys(state.pathologies).length;
+                pathologyCount.textContent = `Патологий: ${totalPath}`;
+                statusCount.textContent = `Сегментов: ${state.selectedSegments.size} | Патологий: ${totalPath}`;
+
+                if (totalPath === 0) {
+                    selectedPathologiesContainer.innerHTML = '<div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Кликни на сегмент слева → выбери патологию из списка</div>';
+                } else {
+                    let html = '';
+                    for (const pid in state.pathologies) {
+                        const p = state.pathologies[pid];
+                        const segs = Array.from(p.segments).sort();
+                        const isNorma = p.pathology.isNorma;
+                        
+                        html += `<div class="selected-pathology-card ${isNorma ? 'norma-card' : ''}">
+                            <div class="sp-header">
+                                <div class="sp-title">
+                                    <span class="color-dot" style="background:${p.pathology.color}; width:12px; height:12px; border-radius:50%; display:inline-block;"></span>
+                                    ${p.pathology.name}
+                                </div>
+                                <button class="sp-remove" onclick="removePathology('${pid}')" title="Удалить патологию">×</button>
+                            </div>
+                            <div class="sp-segments">
+                                Сегменты: ${segs.map(s => `<span>${s}</span>`).join('')}
+                                <span style="margin-left:8px; cursor:pointer; color:var(--danger); font-size:0.7rem;" onclick="clearAllSegments('${pid}')">[очистить все]</span>
+                            </div>
+                            <textarea class="ct-description" placeholder="КТ-описание..." oninput="updatePathologyDescription('${pid}', this.value)">${p.description}</textarea>
+                        </div>`;
+                    }
+                    selectedPathologiesContainer.innerHTML = html;
+                }
+
+                updateFinalProtocol();
+            }
+
+            window.clearAllSegments = function(pathologyId) {
+                if (state.pathologies[pathologyId]) {
+                    const segs = Array.from(state.pathologies[pathologyId].segments);
+                    segs.forEach(s => {
+                        state.selectedSegments.delete(s);
+                        let stillHas = false;
+                        for (const pid in state.pathologies) {
+                            if (state.pathologies[pid].segments.has(s)) {
+                                stillHas = true;
+                                break;
+                            }
+                        }
+                        segments.forEach(seg => {
+                            if (seg.dataset.segment === s && !stillHas) {
+                                seg.classList.remove('selected', 'pathology');
+                            }
+                        });
+                    });
+                    delete state.pathologies[pathologyId];
+                    updateUI();
+                    showToast('🗑 Все сегменты очищены');
+                }
+            };
+
+            function updateFinalProtocol() {
+                let text = `ПЕЧЕНЬ:\n  Не увеличена. Контуры чёткие, ровные.\n  Паренхима однородной структуры, плотность не снижена (55–60 HU).\n  Внутрипеченочные желчные протоки не расширены.\n  Сосудистый рисунок не изменён.\n\n`;
+
+                const pathEntries = Object.entries(state.pathologies);
+                if (pathEntries.length === 0) {
+                    text += `[Очаговые изменения:]\n  — не выявлены.\n\n`;
+                    text += `ЗАКЛЮЧЕНИЕ:\n  Патологических изменений печени не выявлено.`;
+                } else {
+                    let hasNorma = false;
+                    let fociText = '';
+                    let conclusionParts = [];
+
+                    pathEntries.forEach(([pid, p]) => {
+                        const segs = Array.from(p.segments).sort().join(', ');
+                        if (p.pathology.isNorma) {
+                            hasNorma = true;
+                            fociText += `  — Сегменты ${segs}: ${p.description}\n`;
+                        } else {
+                            fociText += `  — Сегменты ${segs} (${p.pathology.name}): ${p.description}\n`;
+                            conclusionParts.push(`${p.pathology.name} в сегментах ${segs}`);
+                        }
+                    });
+
+                    text += `[ОЧАГОВЫЕ ИЗМЕНЕНИЯ:]\n${fociText}\n`;
+                    text += `ЗАКЛЮЧЕНИЕ:\n`;
+                    if (conclusionParts.length > 0) {
+                        text += `  Выявлены: ${conclusionParts.join('; ')}. Рекомендовано дообследование (МРТ с контрастом, консультация онколога/хирурга).\n`;
+                    } else if (hasNorma) {
+                        text += `  Патологических изменений не выявлено.\n`;
+                    }
+                }
+
+                finalProtocol.value = text;
+            }
+
+            window.generateFinalProtocol = function() {
+                updateFinalProtocol();
+                showToast('📋 Итоговый протокол сформирован');
+                finalProtocol.focus();
+                finalProtocol.select();
+            };
+
+            window.copyToClipboard = function() {
+                finalProtocol.select();
+                document.execCommand('copy');
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(finalProtocol.value).then(() => {
+                        showToast('✅ Скопировано в буфер обмена!');
+                    }).catch(() => {
+                        showToast('⚠️ Не удалось скопировать');
+                    });
+                } else {
+                    showToast('✅ Скопировано в буфер обмена!');
+                }
+            };
+
+            window.resetAll = function() {
+                if (!confirm('Очистить всё?')) return;
+                state.selectedSegments.clear();
+                state.pathologies = {};
+                segments.forEach(s => s.classList.remove('selected', 'pathology'));
+                updateUI();
+                showToast('🔄 Всё сброшено');
+                statusMessage.textContent = '🔄 Всё сброшено';
+            };
+
+            loadCustomPatterns();
+            renderCustomPatterns();
+            updateUI();
+            statusMessage.textContent = '💡 Кликни на сегмент → появится список патологий. Выбери нужную.';
+
+            console.log('🧬 Печень по Couinaud — умный выбор патологий загружен!');
+        })();
+
+// ============================================================
+// ОТПРАВКА РЕЗУЛЬТАТА В РОДИТЕЛЬСКОЕ ОКНО (КТ-Журнал)
+// ============================================================
+function sendToParent() {
+    let text = '';
+
+    const finalEl = document.getElementById('finalProtocol');
+    if (finalEl) {
+        text = finalEl.value || finalEl.textContent || '';
+    }
+
+    const aspectEl = document.getElementById('protocol-text');
+    if (!text && aspectEl) {
+        text = aspectEl.textContent || '';
+    }
+
+    if (!text.trim()) {
+        alert('⚠️ Сначала сформируйте протокол (нажмите «📋 Итоговый протокол»)');
+        return;
+    }
+
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+            type: 'widget-result',
+            text: text
+        }, '*');
+    } else {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Протокол скопирован в буфер обмена');
+            }).catch(() => {
+                alert('⚠️ Не удалось скопировать');
+            });
+        } else {
+            alert('✅ Протокол готов: ' + text.substring(0, 100) + '...');
+        }
+    }
+}
+    </script>
+
+</body>
+</html>

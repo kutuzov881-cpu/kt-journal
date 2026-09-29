@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Органы грудной клетки — v5</title>
+<style>
+:root {
+  --bg: #f0f4f8; --card: #ffffff; --border: #cbd5e1; --text: #0f172a;
+  --muted: #64748b; --primary: #0ea5e9; --success: #22c55e;
+  --danger: #ef4444; --warning: #f59e0b;
+  --shadow: 0 8px 30px rgba(0,0,0,0.12); --radius: 16px;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+.header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: var(--card); padding: 14px 24px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; }
+.header h1 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.header .badge { background: var(--primary); color: #fff; padding: 4px 14px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+.toolbar button { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-weight: 500; font-size: 0.82rem; cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 6px; font-family: inherit; }
+.toolbar button:hover { background: var(--border); transform: translateY(-2px); }
+.toolbar .primary { background: var(--primary); color: #fff; border: none; }
+.toolbar .primary:hover { background: #0284c7; }
+.toolbar .success { background: var(--success); color: #fff; border: none; }
+.toolbar .success:hover { background: #16a34a; }
+
+.main-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; flex: 1; }
+@media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+.card-header { padding: 12px 20px; background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+.card-header .count { font-weight: 400; font-size: 0.75rem; color: var(--muted); }
+.card-body { padding: 16px 20px; flex: 1; overflow: auto; max-height: 900px; }
+
+.layers-panel { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--border); }
+.layer-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; user-select: none; }
+.layer-toggle:hover { background: #f0f9ff; border-color: var(--primary); }
+.layer-toggle input { cursor: pointer; width: 14px; height: 14px; }
+.layer-toggle.active { background: #e0f2fe; border-color: var(--primary); }
+
+.schema-wrap { position: relative; background: #fefefe; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+.schema-wrap svg { width: 100%; height: auto; display: block; }
+
+.layer { transition: opacity 0.3s ease; }
+.layer.hidden { display: none; }
+.layer.dimmed { opacity: 0.18 !important; pointer-events: none; }
+
+.struct { cursor: pointer; transition: all 0.25s ease; stroke: #1e293b; stroke-width: 1.2; opacity: 0.85; }
+.struct:hover { opacity: 1; stroke-width: 2; filter: brightness(1.1) drop-shadow(0 0 6px rgba(14,165,233,0.5)); }
+.struct.selected { stroke: #0284c7; stroke-width: 3; opacity: 1; filter: drop-shadow(0 0 10px rgba(14,165,233,0.8)); }
+.struct.has-pathology { stroke: #dc2626; stroke-width: 2.5; filter: drop-shadow(0 0 8px rgba(239,68,68,0.7)); }
+
+#layer-skeleton path[data-struct^="rib_"] {
+  stroke: #fbbf24 !important;
+  stroke-width: 21 !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  opacity: 0.9;
+}
+#layer-skeleton path[data-struct^="rib_"]:hover {
+  stroke: #f59e0b !important;
+  filter: brightness(1.15) drop-shadow(0 0 8px rgba(245,158,11,0.7));
+}
+#layer-skeleton path[data-struct^="rib_"].selected {
+  stroke: #0284c7 !important;
+  filter: drop-shadow(0 0 10px rgba(14,165,233,0.9));
+}
+#layer-skeleton path[data-struct^="rib_"].has-pathology {
+  stroke: #dc2626 !important;
+  filter: drop-shadow(0 0 10px rgba(239,68,68,0.8));
+}
+
+.label { font-size: 11px; font-weight: 700; fill: #0f172a; pointer-events: none; user-select: none; }
+.label-sm { font-size: 9px; font-weight: 600; fill: #475569; pointer-events: none; user-select: none; }
+.label-tiny { font-size: 8px; font-weight: 700; fill: #334155; pointer-events: none; user-select: none; }
+
+.add-pathology-panel { margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%); border: 2px dashed #7c3aed; border-radius: 10px; display: none; }
+.add-pathology-panel.show { display: block; }
+.add-pathology-panel .panel-title { font-size: 0.85rem; font-weight: 700; color: #5b21b6; margin-bottom: 8px; }
+.add-pathology-panel .selected-list { font-size: 0.78rem; color: #4b5563; margin-bottom: 10px; line-height: 1.5; }
+.add-pathology-panel .selected-list span { display: inline-block; background: #7c3aed; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin: 2px; }
+.add-pathology-panel .panel-buttons { display: flex; gap: 8px; }
+.add-pathology-panel button { flex: 1; padding: 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all var(--transition); font-family: inherit; }
+.add-pathology-panel .btn-add { background: #7c3aed; color: #fff; }
+.add-pathology-panel .btn-add:hover { background: #6d28d9; }
+.add-pathology-panel .btn-clear { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+.counter-box { display: none; padding: 8px 14px; background: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 8px; margin-bottom: 10px; font-size: 0.82rem; font-weight: 600; color: #0c4a6e; }
+.counter-box.show { display: block; }
+.counter-box button { margin-left: 12px; padding: 3px 10px; background: #fff; border: 1px solid #0ea5e9; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; font-family: inherit; color: #0c4a6e; }
+
+.breadcrumbs { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.78rem; margin-bottom: 10px; min-height: 36px; flex-wrap: wrap; }
+.breadcrumbs .crumb { padding: 4px 10px; border-radius: 6px; font-weight: 600; color: var(--primary); cursor: pointer; }
+.breadcrumbs .crumb.current { background: #0ea5e9; color: #fff; cursor: default; }
+.breadcrumbs .hint { color: var(--muted); font-style: italic; }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 16px; padding: 24px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+.modal-header h2 { font-size: 1.1rem; font-weight: 700; }
+.modal-close { cursor: pointer; font-size: 1.5rem; color: var(--muted); background: none; border: none; padding: 4px 8px; border-radius: 6px; }
+.modal-close:hover { background: var(--bg); color: var(--danger); }
+.pathology-type-list { display: flex; flex-direction: column; gap: 8px; }
+.pathology-type-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); transition: all 0.2s; }
+.pathology-type-item:hover { background: #f1f5f9; border-color: var(--primary); }
+.pathology-type-item .color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.param-form .form-group { margin-bottom: 12px; }
+.param-form label { display: block; font-size: 0.8rem; font-weight: 600; color: #4b5563; margin-bottom: 4px; }
+.param-form input, .param-form select, .param-form textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; background: #fff; font-family: inherit; }
+.param-form input:focus, .param-form select:focus, .param-form textarea:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+.param-form textarea { min-height: 70px; resize: vertical; }
+.param-form .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.param-form .form-buttons { display: flex; gap: 8px; margin-top: 16px; }
+.param-form .form-buttons button { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+.param-form .btn-save { background: #22c55e; color: #fff; }
+.param-form .btn-cancel { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+.protocol-section { margin-bottom: 20px; }
+.protocol-section-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.pathology-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+.pathology-card.inflammation-card { border-left-color: #ef4444; }
+.pathology-card.tumor-card { border-left-color: #7c3aed; }
+.pathology-card.trauma-card { border-left-color: #dc2626; }
+.pathology-card.vascular-card { border-left-color: #0ea5e9; }
+.pathology-card.bone-card { border-left-color: #92400e; }
+.pathology-card.norma-card { border-left-color: #22c55e; }
+.pathology-card .pc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+.pathology-card .pc-title { font-weight: 700; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; }
+.pathology-card .pc-remove { cursor: pointer; color: var(--muted); font-size: 1.1rem; background: none; border: none; padding: 2px 6px; border-radius: 4px; }
+.pathology-card .pc-remove:hover { background: var(--danger); color: #fff; }
+.pathology-card .pc-organs { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; }
+.pathology-card .pc-organs span { display: inline-block; background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin: 2px; }
+.pathology-card .pc-params { font-size: 0.75rem; margin-bottom: 6px; }
+.pathology-card .pc-params .param-tag { display: inline-block; padding: 3px 8px; border-radius: 6px; margin: 2px; font-weight: 600; background: #e0f2fe; color: #0369a1; }
+.pathology-card .pc-desc { font-size: 0.82rem; line-height: 1.5; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
+.final-protocol { width: 100%; min-height: 220px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; line-height: 1.7; font-family: 'Segoe UI', monospace; background: #fafcff; resize: vertical; margin-top: 12px; }
+.final-protocol:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.15); }
+.status-bar { margin-top: 24px; padding: 12px 20px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: #fff; padding: 12px 24px; border-radius: 10px; box-shadow: var(--shadow); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; z-index: 10001; font-size: 0.9rem; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 700px) { body { padding: 12px; } .header { flex-direction: column; align-items: stretch; } .toolbar { justify-content: stretch; } .toolbar button { flex: 1; justify-content: center; font-size: 0.7rem; padding: 6px 10px; } .card-body { max-height: 500px; padding: 12px; } }
+@media print { .toolbar, .status-bar, .modal-overlay, .add-pathology-panel, .layers-panel, .counter-box { display: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div>
+    <h1>🫁 <span>Органы грудной клетки</span></h1>
+    <span class="badge">Многослойная схема · v5</span>
+  </div>
+  <div class="toolbar">
+    <button class="success" onclick="resetAll()">🔄 Сбросить</button>
+    <button class="primary" onclick="generateFinalProtocol()">📋 Итоговый протокол</button>
+    <button onclick="copyToClipboard()">📋 Копировать</button>
+    <button onclick="window.print()">🖨 Печать</button>
+    <button class="success" onclick="sendToParent()" style="background:linear-gradient(135deg,#22c55e,#16a34a);">📥 Вставить в КТ-Журнал</button>
+  </div>
+</header>
+
+<div class="main-grid">
+
+  <div class="card">
+    <div class="card-header">
+      <span>📍 Анатомия (кликни на структуру)</span>
+      <span class="count" id="organsCount">Выбрано: 0</span>
+    </div>
+    <div class="card-body">
+
+      <div class="layers-panel" id="layersPanel">
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="skeleton" onchange="toggleLayer('skeleton', this.checked)"/> 🦴 Скелет</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="lungs" onchange="toggleLayer('lungs', this.checked)"/> 🫁 Лёгкие</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="bronchi" onchange="toggleLayer('bronchi', this.checked)"/> 🌿 Бронхи</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="pa" onchange="toggleLayer('pa', this.checked)"/> 🩸 ЛА</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="ln" onchange="toggleLayer('ln', this.checked)"/> 🔵 ЛУ</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="aorta" onchange="toggleLayer('aorta', this.checked)"/> 🫀 Аорта</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="heart" onchange="toggleLayer('heart', this.checked)"/> ❤️ Сердце</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="esophagus" onchange="toggleLayer('esophagus', this.checked)"/> 🍽️ Пищевод</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="soft" onchange="toggleLayer('soft', this.checked)"/> 💪 Мягкие ткани</label>
+        <button type="button" onclick="hideAllLayers()" style="padding:6px 12px;border-radius:8px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit">🚫 Снять все</button>
+        <button type="button" onclick="showAllLayers()" style="padding:6px 12px;border-radius:8px;background:#dcfce7;color:#166534;border:1px solid #86efac;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit">✅ Все слои</button>
+      </div>
+
+      <div class="counter-box" id="counterBox">
+        🦴 Выбрано структур: <span id="counterNum">0</span>
+        <button onclick="clearAllSelection()">Снять всё</button>
+      </div>
+
+      <div class="breadcrumbs" id="breadcrumbs">
+        <span class="hint">💡 Кликни на структуру</span>
+      </div>
+
+      <div class="schema-wrap">
+        <svg viewBox="0 0 900 800" xmlns="http://www.w3.org/2000/svg" id="chestSvg">
+
+          <!-- СЛОЙ: СКЕЛЕТ -->
+          <g id="layer-skeleton" class="layer">
+            <!-- Позвоночник -->
+            <rect class="struct" data-struct="spine_thoracic" x="425" y="80" width="50" height="120" fill="#f5f5f4" stroke="#78716c" stroke-width="1.5" rx="4"/>
+            <rect class="struct" data-struct="spine_thoracic" x="425" y="210" width="50" height="120" fill="#f5f5f4" stroke="#78716c" stroke-width="1.5" rx="4"/>
+            <rect class="struct" data-struct="spine_thoracic" x="425" y="340" width="50" height="120" fill="#f5f5f4" stroke="#78716c" stroke-width="1.5" rx="4"/>
+            <rect class="struct" data-struct="spine_thoracic" x="425" y="470" width="50" height="120" fill="#f5f5f4" stroke="#78716c" stroke-width="1.5" rx="4"/>
+            <rect class="struct" data-struct="spine_thoracic" x="425" y="600" width="50" height="100" fill="#f5f5f4" stroke="#78716c" stroke-width="1.5" rx="4"/>
+            <text class="label-sm" x="435" y="70">Позвоночник</text>
+
+            <!-- Грудина -->
+            <path class="struct" data-struct="sternum_manubrium" d="M440 200 L460 200 L465 240 L435 240 Z" fill="#fef3c7" stroke="#92400e" stroke-width="1.5"/>
+            <text class="label-tiny" x="468" y="225">Рукоятка</text>
+            <path class="struct" data-struct="sternum_body" d="M435 245 L465 245 L470 560 L430 560 Z" fill="#fef3c7" stroke="#92400e" stroke-width="1.5"/>
+            <text class="label-sm" x="475" y="400">Грудина</text>
+            <path class="struct" data-struct="sternum_xiphoid" d="M435 565 L465 565 L455 600 L445 600 Z" fill="#fde68a" stroke="#92400e" stroke-width="1.5"/>
+            <text class="label-tiny" x="468" y="590">Мечевидный</text>
+
+            <!-- Рёбра правая сторона -->
+            <g fill="none" stroke="#fbbf24" stroke-width="21" stroke-linecap="round" stroke-linejoin="round">
+              <path class="struct" data-struct="rib_r1" d="M435 220 Q350 200 280 210 Q240 220 220 240"/>
+              <path class="struct" data-struct="rib_r2" d="M435 255 Q340 235 260 245 Q220 255 200 280"/>
+              <path class="struct" data-struct="rib_r3" d="M435 290 Q340 270 260 280 Q215 295 195 320"/>
+              <path class="struct" data-struct="rib_r4" d="M435 325 Q340 305 260 315 Q215 330 195 355"/>
+              <path class="struct" data-struct="rib_r5" d="M435 360 Q340 340 260 350 Q215 365 195 390"/>
+              <path class="struct" data-struct="rib_r6" d="M435 395 Q340 375 260 385 Q215 400 195 425"/>
+              <path class="struct" data-struct="rib_r7" d="M435 430 Q340 410 260 420 Q215 435 195 460"/>
+              <path class="struct" data-struct="rib_r8" d="M435 465 Q345 445 270 455 Q225 470 205 495"/>
+              <path class="struct" data-struct="rib_r9" d="M435 500 Q350 480 285 490 Q240 505 220 530"/>
+              <path class="struct" data-struct="rib_r10" d="M435 535 Q360 515 300 525 Q260 540 245 565"/>
+              <path class="struct" data-struct="rib_r11" d="M435 570 Q380 555 330 565 Q300 580 290 600"/>
+              <path class="struct" data-struct="rib_r12" d="M435 600 Q395 590 360 595 Q340 605 335 620"/>
+            </g>
+            <text class="label-sm" x="280" y="640">Рёбра (R)</text>
+
+            <!-- Рёбра левая сторона -->
+            <g fill="none" stroke="#fbbf24" stroke-width="21" stroke-linecap="round" stroke-linejoin="round">
+              <path class="struct" data-struct="rib_l1" d="M465 220 Q550 200 620 210 Q660 220 680 240"/>
+              <path class="struct" data-struct="rib_l2" d="M465 255 Q560 235 640 245 Q680 255 700 280"/>
+              <path class="struct" data-struct="rib_l3" d="M465 290 Q560 270 640 280 Q685 295 705 320"/>
+              <path class="struct" data-struct="rib_l4" d="M465 325 Q560 305 640 315 Q685 330 705 355"/>
+              <path class="struct" data-struct="rib_l5" d="M465 360 Q560 340 640 350 Q685 365 705 390"/>
+              <path class="struct" data-struct="rib_l6" d="M465 395 Q560 375 640 385 Q685 400 705 425"/>
+              <path class="struct" data-struct="rib_l7" d="M465 430 Q560 410 640 420 Q685 435 705 460"/>
+              <path class="struct" data-struct="rib_l8" d="M465 465 Q555 445 630 455 Q675 470 695 495"/>
+              <path class="struct" data-struct="rib_l9" d="M465 500 Q550 480 615 490 Q660 505 680 530"/>
+              <path class="struct" data-struct="rib_l10" d="M465 535 Q540 515 600 525 Q640 540 655 565"/>
+              <path class="struct" data-struct="rib_l11" d="M465 570 Q520 555 570 565 Q600 580 610 600"/>
+              <path class="struct" data-struct="rib_l12" d="M465 600 Q505 590 540 595 Q560 605 565 620"/>
+            </g>
+            <text class="label-sm" x="580" y="640">Рёбра (L)</text>
+
+            <!-- Ключицы -->
+            <path class="struct" data-struct="clavicle_r" d="M435 195 Q380 175 320 165 Q290 160 270 170 Q265 185 280 195 Q310 200 360 205 Q410 210 435 215 Z" fill="#fde68a" stroke="#92400e" stroke-width="1.5"/>
+            <text class="label-tiny" x="290" y="155">Ключица R</text>
+            <path class="struct" data-struct="clavicle_l" d="M465 195 Q520 175 580 165 Q610 160 630 170 Q635 185 620 195 Q590 200 540 205 Q490 210 465 215 Z" fill="#fde68a" stroke="#92400e" stroke-width="1.5"/>
+            <text class="label-tiny" x="600" y="155">Ключица L</text>
+
+            <!-- Лопатки -->
+            <path class="struct" data-struct="scapula_r" d="M240 200 Q215 260 220 340 Q230 400 260 420 Q280 410 275 350 Q275 280 265 220 Z" fill="#e7e5e4" stroke="#78716c" stroke-width="1.5" opacity="0.8"/>
+            <text class="label-tiny" x="225" y="330">Лопатка R</text>
+            <path class="struct" data-struct="scapula_l" d="M660 200 Q685 260 680 340 Q670 400 640 420 Q620 410 625 350 Q625 280 635 220 Z" fill="#e7e5e4" stroke="#78716c" stroke-width="1.5" opacity="0.8"/>
+            <text class="label-tiny" x="650" y="330">Лопатка L</text>
+          </g>
+
+          <!-- СЛОЙ: ЛЁГКИЕ -->
+          <g id="layer-lungs" class="layer">
+            <path class="struct" data-struct="right_lung" data-part="upper" d="M200 180 Q240 150 320 150 Q370 155 380 200 Q385 240 360 280 Q320 300 260 300 Q210 300 195 270 Q185 230 200 180 Z" fill="#93c5fd"/>
+            <text class="label" x="270" y="240">ПРАВОЕ ЛЁГКОЕ</text>
+            <path class="struct" data-struct="right_lung" data-part="middle" d="M195 270 Q260 300 360 280 Q400 300 405 350 Q400 400 360 420 Q280 430 220 400 Q185 370 185 320 Q185 290 195 270 Z" fill="#86efac"/>
+            <path class="struct" data-struct="right_lung" data-part="lower" d="M220 400 Q280 430 360 420 Q410 440 420 500 Q415 570 370 620 Q310 650 260 630 Q220 600 210 540 Q200 480 220 400 Z" fill="#fcd34d"/>
+
+            <path class="struct" data-struct="left_lung" data-part="upper" d="M700 180 Q660 150 580 150 Q530 155 520 200 Q515 240 540 280 Q580 300 640 300 Q690 300 705 270 Q715 230 700 180 Z" fill="#93c5fd"/>
+            <text class="label" x="600" y="240">ЛЕВОЕ ЛЁГКОЕ</text>
+            <path class="struct" data-struct="left_lung" data-part="lingula" d="M705 270 Q640 300 540 280 Q500 300 495 350 Q500 400 540 420 Q620 430 680 400 Q715 370 715 320 Q715 290 705 270 Z" fill="#86efac"/>
+            <path class="struct" data-struct="left_lung" data-part="lower" d="M680 400 Q620 430 540 420 Q490 440 480 500 Q485 570 530 620 Q590 650 640 630 Q680 600 690 540 Q700 480 680 400 Z" fill="#fcd34d"/>
+
+            <!-- Сегменты (скрыты) -->
+            <g id="segmentsOverlay" style="display:none">
+              <path class="segment" data-segment="S1" data-side="right" d="M280 165 Q320 160 355 175 Q365 195 350 215 Q315 220 285 210 Q275 190 280 165 Z" fill="#c084fc"/>
+              <text class="label-tiny" x="310" y="195">S1</text>
+              <path class="segment" data-segment="S2" data-side="right" d="M215 200 Q250 190 280 200 Q285 220 275 240 Q245 250 220 240 Q210 220 215 200 Z" fill="#f472b6"/>
+              <text class="label-tiny" x="240" y="225">S2</text>
+              <path class="segment" data-segment="S3" data-side="right" d="M300 230 Q340 225 365 240 Q370 260 355 275 Q320 280 300 270 Q295 250 300 230 Z" fill="#60a5fa"/>
+              <text class="label-tiny" x="325" y="260">S3</text>
+              <path class="segment" data-segment="S4" data-side="right" d="M280 300 Q330 295 375 305 Q380 325 365 340 Q320 345 285 340 Q275 320 280 300 Z" fill="#34d399"/>
+              <text class="label-tiny" x="325" y="330">S4</text>
+              <path class="segment" data-segment="S5" data-side="right" d="M215 310 Q255 305 280 315 Q285 335 275 355 Q245 360 220 350 Q210 330 215 310 Z" fill="#fbbf24"/>
+              <text class="label-tiny" x="240" y="340">S5</text>
+              <path class="segment" data-segment="S6" data-side="right" d="M215 420 Q265 410 320 415 Q325 445 310 470 Q265 480 220 465 Q210 445 215 420 Z" fill="#22c55e"/>
+              <text class="label-tiny" x="260" y="455">S6</text>
+              <path class="segment" data-segment="S7" data-side="right" d="M230 500 Q280 490 330 495 Q335 525 320 550 Q275 560 235 545 Q225 525 230 500 Z" fill="#eab308"/>
+              <text class="label-tiny" x="275" y="535">S7</text>
+              <path class="segment" data-segment="S8" data-side="right" d="M215 570 Q260 555 305 560 Q310 585 295 605 Q255 615 220 600 Q210 585 215 570 Z" fill="#f97316"/>
+              <text class="label-tiny" x="255" y="595">S8</text>
+              <path class="segment" data-segment="S9" data-side="right" d="M290 580 Q330 575 365 585 Q370 605 355 620 Q315 625 290 615 Q280 600 290 580 Z" fill="#06b6d4"/>
+              <text class="label-tiny" x="325" y="610">S9</text>
+              <path class="segment" data-segment="S10" data-side="right" d="M340 500 Q375 495 400 510 Q405 530 390 545 Q360 550 340 540 Q335 520 340 500 Z" fill="#8b5cf6"/>
+              <text class="label-tiny" x="365" y="535">S10</text>
+
+              <path class="segment" data-segment="S1" data-side="left" d="M620 165 Q580 160 545 175 Q535 195 550 215 Q585 220 615 210 Q625 190 620 165 Z" fill="#c084fc"/>
+              <text class="label-tiny" x="575" y="195">S1</text>
+              <path class="segment" data-segment="S2" data-side="left" d="M685 200 Q650 190 620 200 Q615 220 625 240 Q655 250 680 240 Q690 220 685 200 Z" fill="#f472b6"/>
+              <text class="label-tiny" x="645" y="225">S2</text>
+              <path class="segment" data-segment="S3" data-side="left" d="M600 230 Q560 225 535 240 Q530 260 545 275 Q580 280 600 270 Q605 250 600 230 Z" fill="#60a5fa"/>
+              <text class="label-tiny" x="565" y="260">S3</text>
+              <path class="segment" data-segment="S4" data-side="left" d="M620 300 Q570 295 525 305 Q520 325 535 340 Q580 345 615 340 Q625 320 620 300 Z" fill="#34d399"/>
+              <text class="label-tiny" x="570" y="330">S4</text>
+              <path class="segment" data-segment="S5" data-side="left" d="M685 310 Q645 305 620 315 Q615 335 625 355 Q655 360 680 350 Q690 330 685 310 Z" fill="#fbbf24"/>
+              <text class="label-tiny" x="650" y="340">S5</text>
+              <path class="segment" data-segment="S6" data-side="left" d="M685 420 Q635 410 580 415 Q575 445 590 470 Q635 480 680 465 Q690 445 685 420 Z" fill="#22c55e"/>
+              <text class="label-tiny" x="630" y="455">S6</text>
+              <path class="segment" data-segment="S8" data-side="left" d="M670 500 Q620 490 570 495 Q565 525 580 550 Q625 560 665 545 Q675 525 670 500 Z" fill="#eab308"/>
+              <text class="label-tiny" x="615" y="535">S8</text>
+              <path class="segment" data-segment="S9" data-side="left" d="M685 570 Q640 555 595 560 Q590 585 605 605 Q645 615 680 600 Q690 585 685 570 Z" fill="#f97316"/>
+              <text class="label-tiny" x="635" y="595">S9</text>
+              <path class="segment" data-segment="S10" data-side="left" d="M610 580 Q570 575 535 585 Q530 605 545 620 Q585 625 610 615 Q620 600 610 580 Z" fill="#06b6d4"/>
+              <text class="label-tiny" x="565" y="610">S10</text>
+            </g>
+          </g>
+
+          <!-- СЛОЙ: БРОНХИ -->
+          <g id="layer-bronchi" class="layer">
+            <path class="struct" data-struct="trachea" d="M430 60 L430 230 Q430 250 450 260 Q470 250 470 230 L470 60 Z" fill="#a7f3d0"/>
+            <g stroke="#059669" stroke-width="1" opacity="0.5">
+              <line x1="432" y1="80" x2="468" y2="80"/><line x1="432" y1="100" x2="468" y2="100"/>
+              <line x1="432" y1="120" x2="468" y2="120"/><line x1="432" y1="140" x2="468" y2="140"/>
+              <line x1="432" y1="160" x2="468" y2="160"/><line x1="432" y1="180" x2="468" y2="180"/>
+              <line x1="432" y1="200" x2="468" y2="200"/><line x1="432" y1="220" x2="468" y2="220"/>
+            </g>
+            <path class="struct" data-struct="r_main_bronchus" d="M450 260 Q410 275 370 290 Q350 300 340 320 Q345 335 360 330 Q385 315 410 305 Q440 295 455 285 Z" fill="#6ee7b7"/>
+            <path class="struct" data-struct="r_upper_bronchus" d="M360 290 Q340 260 320 240 Q310 235 300 240 Q305 260 320 280 Q335 295 350 300 Z" fill="#34d399"/>
+            <path class="struct" data-struct="r_intermediate_bronchus" d="M410 305 Q410 340 415 380 Q420 400 435 415 Q450 415 445 395 Q435 360 430 320 Q425 305 410 305 Z" fill="#10b981"/>
+            <path class="struct" data-struct="r_middle_bronchus" d="M415 380 Q390 395 365 405 Q355 415 365 425 Q390 420 415 405 Q425 395 415 380 Z" fill="#34d399"/>
+            <path class="struct" data-struct="r_lower_bronchus" d="M430 420 Q440 470 450 520 Q455 545 470 550 Q485 545 480 520 Q465 470 455 430 Z" fill="#10b981"/>
+            <path class="struct" data-struct="l_main_bronchus" d="M450 260 Q490 275 530 290 Q550 300 560 320 Q555 335 540 330 Q515 315 490 305 Q460 295 445 285 Z" fill="#6ee7b7"/>
+            <path class="struct" data-struct="l_upper_bronchus" d="M540 290 Q560 260 580 240 Q590 235 600 240 Q595 260 580 280 Q565 295 550 300 Z" fill="#34d399"/>
+            <path class="struct" data-struct="lingular_bronchus" d="M535 330 Q555 350 575 365 Q585 375 580 385 Q565 385 545 370 Q530 355 525 340 Z" fill="#34d399"/>
+            <path class="struct" data-struct="l_lower_bronchus" d="M540 340 Q540 400 540 460 Q545 520 555 550 Q570 555 575 530 Q565 470 560 410 Q555 350 555 340 Z" fill="#10b981"/>
+            <text class="label-sm" x="480" y="55">Трахея</text>
+          </g>
+
+          <!-- СЛОЙ: ЛЁГОЧНАЯ АРТЕРИЯ -->
+          <g id="layer-pa" class="layer">
+            <path class="struct" data-struct="pa_trunk" d="M440 270 Q440 320 445 360 Q455 380 470 385 Q485 380 490 360 Q490 320 480 280 Q470 265 460 265 Z" fill="#fca5a5"/>
+            <path class="struct" data-struct="r_pa" d="M445 360 Q420 380 390 395 Q370 405 355 415 Q365 425 385 420 Q415 405 440 390 Q450 380 450 370 Z" fill="#f87171"/>
+            <path class="struct" data-struct="r_pa_upper" d="M390 395 Q365 375 340 360 Q330 355 320 360 Q330 375 350 385 Q375 400 390 395 Z" fill="#ef4444"/>
+            <path class="struct" data-struct="r_pa_intermediate" d="M430 390 Q440 440 450 490 Q455 510 470 515 Q480 505 475 490 Q460 440 450 400 Z" fill="#ef4444"/>
+            <path class="struct" data-struct="r_pa_lower" d="M450 490 Q440 540 445 580 Q455 600 470 595 Q480 580 475 560 Q465 520 465 490 Z" fill="#ef4444"/>
+            <path class="struct" data-struct="l_pa" d="M480 360 Q510 380 545 395 Q565 405 580 415 Q570 425 550 420 Q520 405 490 390 Q480 380 480 370 Z" fill="#f87171"/>
+            <path class="struct" data-struct="l_pa_upper" d="M545 395 Q565 375 590 360 Q600 355 610 360 Q600 375 580 385 Q555 400 545 395 Z" fill="#ef4444"/>
+            <path class="struct" data-struct="l_pa_lingular" d="M550 420 Q565 440 580 455 Q595 465 600 475 Q585 480 570 470 Q555 455 545 440 Z" fill="#ef4444"/>
+            <path class="struct" data-struct="l_pa_lower" d="M545 425 Q540 480 540 530 Q545 560 560 570 Q575 565 575 545 Q565 495 560 440 Z" fill="#ef4444"/>
+            <text class="label-sm" x="495" y="275">Лёгочная артерия</text>
+          </g>
+
+          <!-- СЛОЙ: ЛИМФОУЗЛЫ -->
+          <g id="layer-ln" class="layer">
+            <circle class="struct" data-struct="ln_2R" cx="395" cy="235" r="12" fill="#a855f7"/>
+            <text class="label-tiny" x="370" y="225">2R</text>
+            <circle class="struct" data-struct="ln_2L" cx="505" cy="235" r="12" fill="#a855f7"/>
+            <text class="label-tiny" x="520" y="225">2L</text>
+            <circle class="struct" data-struct="ln_4R" cx="400" cy="295" r="12" fill="#a855f7"/>
+            <text class="label-tiny" x="375" y="285">4R</text>
+            <circle class="struct" data-struct="ln_4L" cx="500" cy="295" r="12" fill="#a855f7"/>
+            <text class="label-tiny" x="520" y="285">4L</text>
+            <circle class="struct" data-struct="ln_5" cx="540" cy="265" r="12" fill="#f59e0b"/>
+            <text class="label-tiny" x="560" y="255">5</text>
+            <circle class="struct" data-struct="ln_6" cx="370" cy="265" r="12" fill="#f59e0b"/>
+            <text class="label-tiny" x="340" y="255">6</text>
+            <circle class="struct" data-struct="ln_7" cx="450" cy="350" r="14" fill="#22c55e"/>
+            <text class="label-tiny" x="465" y="345">7</text>
+            <circle class="struct" data-struct="ln_8" cx="450" cy="460" r="12" fill="#3b82f6"/>
+            <text class="label-tiny" x="465" y="455">8</text>
+            <circle class="struct" data-struct="ln_10R" cx="360" cy="380" r="12" fill="#ec4899"/>
+            <text class="label-tiny" x="330" y="375">10R</text>
+            <circle class="struct" data-struct="ln_10L" cx="540" cy="380" r="12" fill="#ec4899"/>
+            <text class="label-tiny" x="555" y="375">10L</text>
+          </g>
+
+          <!-- СЛОЙ: АОРТА -->
+          <g id="layer-aorta" class="layer">
+            <path class="struct" data-struct="aorta_asc" d="M400 200 Q395 250 400 300 Q405 340 410 360 L440 360 Q435 340 430 300 Q425 250 425 200 Z" fill="#fecaca"/>
+            <path class="struct" data-struct="aorta_arch" d="M400 200 Q400 150 450 130 Q500 120 540 150 Q570 175 570 210 Q570 240 560 260 L535 250 Q540 225 535 200 Q530 175 505 160 Q475 150 445 165 Q420 180 420 200 Z" fill="#fca5a5"/>
+            <path class="struct" data-struct="aorta_branches" d="M440 145 Q440 110 445 90 L460 90 Q455 110 455 145 Z" fill="#f87171"/>
+            <path class="struct" data-struct="aorta_branches" d="M490 130 Q495 100 500 85 L515 85 Q510 100 505 130 Z" fill="#f87171"/>
+            <path class="struct" data-struct="aorta_branches" d="M540 150 Q550 125 560 110 L575 110 Q565 125 555 150 Z" fill="#f87171"/>
+            <path class="struct" data-struct="aorta_desc" d="M540 260 Q540 350 535 450 Q530 550 540 620 Q545 660 560 680 L585 680 Q570 660 565 620 Q555 550 560 450 Q565 350 565 260 Z" fill="#fca5a5"/>
+            <path class="struct" data-struct="aorta_abdominal" d="M545 660 Q545 720 550 780 L575 780 Q570 720 570 660 Z" fill="#f87171"/>
+          </g>
+
+          <!-- СЛОЙ: СЕРДЦЕ -->
+          <g id="layer-heart" class="layer">
+            <path class="struct" data-struct="heart" d="M380 420 Q340 420 320 460 Q300 510 330 570 Q370 630 440 645 Q510 630 550 570 Q580 510 560 460 Q540 420 500 420 Q460 405 430 415 Q400 415 380 420 Z" fill="#fda4af"/>
+            <path class="struct" data-struct="heart_la" d="M380 430 Q360 440 360 470 Q365 490 390 495 Q410 490 415 470 Q415 445 400 435 Z" fill="#fb7185"/>
+            <path class="struct" data-struct="heart_lv" d="M420 470 Q400 490 405 530 Q420 570 460 590 Q490 570 495 530 Q490 490 465 475 Z" fill="#e11d48"/>
+            <path class="struct" data-struct="heart_ra" d="M500 430 Q520 440 520 470 Q515 490 490 495 Q470 490 465 470 Q465 445 480 435 Z" fill="#fb7185"/>
+            <path class="struct" data-struct="heart_rv" d="M460 470 Q445 490 450 530 Q465 570 500 585 Q520 560 520 530 Q515 490 490 475 Z" fill="#be123c"/>
+            <text class="label" x="430" y="530">СЕРДЦЕ</text>
+          </g>
+
+          <!-- СЛОЙ: ПИЩЕВОД -->
+          <g id="layer-esophagus" class="layer">
+            <path class="struct" data-struct="esophagus" d="M495 260 Q495 350 495 450 Q495 550 500 620 Q505 650 520 660 L535 660 Q520 650 515 620 Q510 550 510 450 Q510 350 510 260 Z" fill="#c4b5fd"/>
+            <text class="label-tiny" x="520" y="450">Пищевод</text>
+          </g>
+
+          <!-- СЛОЙ: МЯГКИЕ ТКАНИ -->
+          <g id="layer-soft" class="layer">
+            <path class="struct" data-struct="soft_chest" d="M180 180 Q170 350 200 500 Q250 620 350 660 Q450 660 550 620 Q650 580 700 500 Q730 350 720 180 Q650 100 450 100 Q250 100 180 180 Z" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4"/>
+            <text class="label-sm" x="200" y="690">Мягкие ткани грудной стенки</text>
+          </g>
+
+        </svg>
+      </div>
+
+      <div class="add-pathology-panel" id="addPanel">
+        <div class="panel-title">🎯 Выбранные структуры:</div>
+        <div class="selected-list" id="selectedList"></div>
+        <div class="panel-buttons">
+          <button class="btn-add" onclick="openPathologyTypeModal()">➕ Добавить патологию</button>
+          <button class="btn-clear" onclick="clearSelection()">Очистить выбор</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span>📝 Описания патологий и протокол</span>
+      <span class="count" id="pathologyCount">Патологий: 0</span>
+    </div>
+    <div class="card-body">
+      <div class="protocol-section">
+        <div class="protocol-section-title">🎯 Добавленные патологии</div>
+        <div id="pathologiesContainer">
+          <div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Кликни на структуру на схеме слева</div>
+        </div>
+      </div>
+      <div class="protocol-section" style="margin-top: 20px;">
+        <div class="protocol-section-title">📋 Итоговый протокол</div>
+        <textarea class="final-protocol" id="finalProtocol">ЛЕГКИЕ. Очаговых и инфильтративных изменений не выявлено.
+
+ТРАХЕЯ И БРОНХИ. Просвет свободен.
+
+КОСТНО-СУСТАВНАЯ СИСТЕМА. Костных травматических и деструктивных изменений не выявлено. Грудина, рёбра, ключицы, лопатки без особенностей. Позвоночник: дегенеративные изменения.
+
+СРЕДОСТЕНИЕ. Не смещено. Сердце не увеличено. Аорта без особенностей.
+
+ЛИМФАТИЧЕСКИЕ УЗЛЫ (IASLC). Не увеличены.</textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="typeModal">
+  <div class="modal">
+    <div class="modal-header"><h2>Выбери тип патологии</h2><button class="modal-close" onclick="closeTypeModal()">×</button></div>
+    <div class="pathology-type-list" id="typeList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="paramModal">
+  <div class="modal">
+    <div class="modal-header"><h2 id="paramModalTitle">Параметры</h2><button class="modal-close" onclick="closeParamModal()">×</button></div>
+    <div class="param-form" id="paramForm"></div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span>💡 <span id="statusMessage">Кликни на структуру → выбери патологию</span></span>
+  <span>📌 <span id="statusCount">Структур: 0 | Патологий: 0</span></span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+'use strict';
+
+const $ = id => document.getElementById(id);
+const toast = $('toast');
+
+function showToast(msg) {
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+const ALL_LAYERS = ['skeleton','lungs','bronchi','pa','ln','aorta','heart','esophagus','soft'];
+
+window.toggleLayer = function(layerId, visible) {
+  const layer = $('layer-' + layerId);
+  if (!layer) return;
+  if (visible) layer.classList.remove('hidden');
+  else layer.classList.add('hidden');
+  const cb = event && event.target ? event.target : null;
+  if (cb && cb.parentElement) cb.parentElement.classList.toggle('active', visible);
+};
+
+window.hideAllLayers = function() {
+  ALL_LAYERS.forEach(id => {
+    const layer = $('layer-' + id);
+    if (layer) layer.classList.add('hidden');
+  });
+  document.querySelectorAll('#layersPanel input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    if (cb.parentElement) cb.parentElement.classList.remove('active');
+  });
+  showToast('🚫 Все слои скрыты');
+};
+
+window.showAllLayers = function() {
+  ALL_LAYERS.forEach(id => {
+    const layer = $('layer-' + id);
+    if (layer) layer.classList.remove('hidden');
+  });
+  document.querySelectorAll('#layersPanel input[type="checkbox"]').forEach(cb => {
+    cb.checked = true;
+    if (cb.parentElement) cb.parentElement.classList.add('active');
+  });
+  showToast('✅ Все слои показаны');
+};
+
+function dimAllExcept(activeLayerId) {
+  document.querySelectorAll('.layer').forEach(l => {
+    if (l.id === 'layer-' + activeLayerId) l.classList.remove('dimmed');
+    else l.classList.add('dimmed');
+  });
+}
+
+function undimAll() {
+  document.querySelectorAll('.layer').forEach(l => l.classList.remove('dimmed'));
+}
+
+const state = {
+  selected: new Set(),
+  selectedSegments: new Set(),
+  pathologies: [],
+  currentTypeId: null,
+  activeStruct: null
+};
+
+const STRUCT_NAMES = {
+  spine_thoracic: 'Грудной отдел позвоночника',
+  sternum_manubrium: 'Грудина (рукоятка)',
+  sternum_body: 'Грудина (тело)',
+  sternum_xiphoid: 'Грудина (мечевидный отросток)',
+  clavicle_r: 'Правая ключица', clavicle_l: 'Левая ключица',
+  scapula_r: 'Правая лопатка', scapula_l: 'Левая лопатка',
+  rib_r1: '1-е ребро справа', rib_r2: '2-е ребро справа', rib_r3: '3-е ребро справа',
+  rib_r4: '4-е ребро справа', rib_r5: '5-е ребро справа', rib_r6: '6-е ребро справа',
+  rib_r7: '7-е ребро справа', rib_r8: '8-е ребро справа', rib_r9: '9-е ребро справа',
+  rib_r10: '10-е ребро справа', rib_r11: '11-е ребро справа', rib_r12: '12-е ребро справа',
+  rib_l1: '1-е ребро слева', rib_l2: '2-е ребро слева', rib_l3: '3-е ребро слева',
+  rib_l4: '4-е ребро слева', rib_l5: '5-е ребро слева', rib_l6: '6-е ребро слева',
+  rib_l7: '7-е ребро слева', rib_l8: '8-е ребро слева', rib_l9: '9-е ребро слева',
+  rib_l10: '10-е ребро слева', rib_l11: '11-е ребро слева', rib_l12: '12-е ребро слева',
+  right_lung: 'Правое лёгкое', left_lung: 'Левое лёгкое',
+  trachea: 'Трахея',
+  r_main_bronchus: 'Правый главный бронх', l_main_bronchus: 'Левый главный бронх',
+  r_upper_bronchus: 'Правый верхнедолевой бронх', r_middle_bronchus: 'Правый среднедолевой бронх',
+  r_intermediate_bronchus: 'Промежуточный бронх', r_lower_bronchus: 'Правый нижнедолевой бронх',
+  l_upper_bronchus: 'Левый верхнедолевой бронх', lingular_bronchus: 'Язычковые бронхи',
+  l_lower_bronchus: 'Левый нижнедолевой бронх',
+  pa_trunk: 'Ствол лёгочной артерии', r_pa: 'Правая ЛА', l_pa: 'Левая ЛА',
+  r_pa_upper: 'Верхняя ветвь правой ЛА', r_pa_intermediate: 'Промежуточная ветвь правой ЛА',
+  r_pa_lower: 'Нижняя ветвь правой ЛА', l_pa_upper: 'Верхняя ветвь левой ЛА',
+  l_pa_lingular: 'Язычковая ветвь левой ЛА', l_pa_lower: 'Нижняя ветвь левой ЛА',
+  ln_2R: 'ЛУ 2R', ln_2L: 'ЛУ 2L', ln_4R: 'ЛУ 4R', ln_4L: 'ЛУ 4L',
+  ln_5: 'ЛУ 5', ln_6: 'ЛУ 6', ln_7: 'ЛУ 7', ln_8: 'ЛУ 8', ln_10R: 'ЛУ 10R', ln_10L: 'ЛУ 10L',
+  aorta_asc: 'Восходящая аорта', aorta_arch: 'Дуга аорты',
+  aorta_desc: 'Нисходящая аорта', aorta_abdominal: 'Абдоминальная аорта',
+  aorta_branches: 'Ветви дуги аорты',
+  heart: 'Сердце', heart_la: 'Левое предсердие', heart_lv: 'Левый желудочек',
+  heart_ra: 'Правое предсердие', heart_rv: 'Правый желудочек',
+  esophagus: 'Пищевод', soft_chest: 'Мягкие ткани грудной стенки'
+};
+
+const SEGMENT_NAMES = {
+  right_S1:'S1 правого лёгкого', right_S2:'S2 правого лёгкого', right_S3:'S3 правого лёгкого',
+  right_S4:'S4 правого лёгкого', right_S5:'S5 правого лёгкого', right_S6:'S6 правого лёгкого',
+  right_S7:'S7 правого лёгкого', right_S8:'S8 правого лёгкого', right_S9:'S9 правого лёгкого',
+  right_S10:'S10 правого лёгкого',
+  left_S1:'S1 левого лёгкого', left_S2:'S2 левого лёгкого', left_S3:'S3 левого лёгкого',
+  left_S4:'S4 левого лёгкого', left_S5:'S5 левого лёгкого', left_S6:'S6 левого лёгкого',
+  left_S8:'S8 левого лёгкого', left_S9:'S9 левого лёгкого', left_S10:'S10 левого лёгкого'
+};
+
+const PATHOLOGIES = [
+  { id: 'pneumonia', name: '🔥 Пневмония', color: '#ef4444', category: 'inflammation', targets: ['right_lung','left_lung','segment'] },
+  { id: 'tb', name: '🦠 Туберкулёз', color: '#dc2626', category: 'inflammation', targets: ['right_lung','left_lung','segment'] },
+  { id: 'tumor_lung', name: '🟣 Опухоль лёгкого', color: '#7c3aed', category: 'tumor', targets: ['right_lung','left_lung','segment'] },
+  { id: 'metastasis_lung', name: '🟣 Метастазы в лёгкие', color: '#7c3aed', category: 'tumor', targets: ['right_lung','left_lung','segment'] },
+  { id: 'atelectasis', name: '🫁 Ателектаз', color: '#f97316', category: 'inflammation', targets: ['right_lung','left_lung','segment'] },
+  { id: 'emphysema', name: '💨 Эмфизема', color: '#06b6d4', category: 'inflammation', targets: ['right_lung','left_lung'] },
+  { id: 'fibrosis', name: '🕸️ Фиброз', color: '#6b7280', category: 'inflammation', targets: ['right_lung','left_lung','segment'] },
+
+  { id: 'stenosis', name: '⚠️ Стеноз бронха', color: '#f97316', category: 'inflammation', targets: ['trachea','r_main_bronchus','l_main_bronchus','r_upper_bronchus','r_middle_bronchus','r_intermediate_bronchus','r_lower_bronchus','l_upper_bronchus','lingular_bronchus','l_lower_bronchus'] },
+  { id: 'obstruction', name: '🚫 Обтурация бронха', color: '#dc2626', category: 'inflammation', targets: ['trachea','r_main_bronchus','l_main_bronchus','r_upper_bronchus','r_middle_bronchus','r_intermediate_bronchus','r_lower_bronchus','l_upper_bronchus','lingular_bronchus','l_lower_bronchus'] },
+
+  { id: 'pe', name: '🩸 ТЭЛА', color: '#dc2626', category: 'vascular', targets: ['pa_trunk','r_pa','l_pa','r_pa_upper','r_pa_intermediate','r_pa_lower','l_pa_upper','l_pa_lingular','l_pa_lower'] },
+  { id: 'pa_dilation', name: '📏 Расширение ЛА', color: '#f59e0b', category: 'vascular', targets: ['pa_trunk','r_pa','l_pa'] },
+
+  { id: 'lymphadenopathy', name: '🔵 Лимфаденопатия', color: '#3b82f6', category: 'tumor', targets: ['ln_2R','ln_2L','ln_4R','ln_4L','ln_5','ln_6','ln_7','ln_8','ln_10R','ln_10L'] },
+
+  { id: 'aorta_calc', name: '⚪ Кальциноз аорты', color: '#6b7280', category: 'vascular', targets: ['aorta_asc','aorta_arch','aorta_desc','aorta_abdominal'] },
+  { id: 'dissection', name: '🩸 Расслоение аорты', color: '#dc2626', category: 'vascular', targets: ['aorta_asc','aorta_arch','aorta_desc'] },
+  { id: 'aneurysm', name: '🫀 Аневризма аорты', color: '#ef4444', category: 'vascular', targets: ['aorta_asc','aorta_arch','aorta_desc','aorta_abdominal'] },
+
+  { id: 'cardio', name: '❤️ Кардиомегалия', color: '#ef4444', category: 'vascular', targets: ['heart','heart_la','heart_lv','heart_ra','heart_rv'] },
+  { id: 'pericarditis', name: '💧 Перикардит', color: '#3b82f6', category: 'inflammation', targets: ['heart'] },
+
+  { id: 'esophagus_path', name: '🍽️ Патология пищевода', color: '#8b5cf6', category: 'inflammation', targets: ['esophagus'] },
+
+  { id: 'fracture_trauma', name: '🦴 Травматический перелом', color: '#dc2626', category: 'trauma', targets: ['spine_thoracic','sternum_manubrium','sternum_body','sternum_xiphoid','clavicle_r','clavicle_l','scapula_r','scapula_l','rib_r1','rib_r2','rib_r3','rib_r4','rib_r5','rib_r6','rib_r7','rib_r8','rib_r9','rib_r10','rib_r11','rib_r12','rib_l1','rib_l2','rib_l3','rib_l4','rib_l5','rib_l6','rib_l7','rib_l8','rib_l9','rib_l10','rib_l11','rib_l12'] },
+  { id: 'fracture_path', name: '🦴 Патологический перелом', color: '#7c3aed', category: 'tumor', targets: ['spine_thoracic','sternum_manubrium','sternum_body','sternum_xiphoid','clavicle_r','clavicle_l','scapula_r','scapula_l','rib_r1','rib_r2','rib_r3','rib_r4','rib_r5','rib_r6','rib_r7','rib_r8','rib_r9','rib_r10','rib_r11','rib_r12','rib_l1','rib_l2','rib_l3','rib_l4','rib_l5','rib_l6','rib_l7','rib_l8','rib_l9','rib_l10','rib_l11','rib_l12'] },
+  { id: 'bone_destruction', name: '🕳️ Костная деструкция', color: '#7c3aed', category: 'tumor', targets: ['spine_thoracic','sternum_manubrium','sternum_body','sternum_xiphoid','clavicle_r','clavicle_l','scapula_r','scapula_l','rib_r1','rib_r2','rib_r3','rib_r4','rib_r5','rib_r6','rib_r7','rib_r8','rib_r9','rib_r10','rib_r11','rib_r12','rib_l1','rib_l2','rib_l3','rib_l4','rib_l5','rib_l6','rib_l7','rib_l8','rib_l9','rib_l10','rib_l11','rib_l12'] },
+  { id: 'bone_metastasis', name: '🎗️ Метастазы в кости', color: '#7c3aed', category: 'tumor', targets: ['spine_thoracic','sternum_manubrium','sternum_body','sternum_xiphoid','clavicle_r','clavicle_l','scapula_r','scapula_l','rib_r1','rib_r2','rib_r3','rib_r4','rib_r5','rib_r6','rib_r7','rib_r8','rib_r9','rib_r10','rib_r11','rib_r12','rib_l1','rib_l2','rib_l3','rib_l4','rib_l5','rib_l6','rib_l7','rib_l8','rib_l9','rib_l10','rib_l11','rib_l12'] },
+  { id: 'plasmacytoma', name: '🩸 Плазмоцитома / миелома', color: '#dc2626', category: 'tumor', targets: ['spine_thoracic','sternum_manubrium','sternum_body','sternum_xiphoid','clavicle_r','clavicle_l','scapula_r','scapula_l','rib_r1','rib_r2','rib_r3','rib_r4','rib_r5','rib_r6','rib_r7','rib_r8','rib_r9','rib_r10','rib_r11','rib_r12','rib_l1','rib_l2','rib_l3','rib_l4','rib_l5','rib_l6','rib_l7','rib_l8','rib_l9','rib_l10','rib_l11','rib_l12'] },
+  { id: 'osteoporosis', name: '🦴 Остеопороз', color: '#a16207', category: 'bone', targets: ['spine_thoracic','rib_r1','rib_r2','rib_r3','rib_r4','rib_r5','rib_r6','rib_r7','rib_r8','rib_r9','rib_r10','rib_r11','rib_r12','rib_l1','rib_l2','rib_l3','rib_l4','rib_l5','rib_l6','rib_l7','rib_l8','rib_l9','rib_l10','rib_l11','rib_l12'] },
+  { id: 'osteomyelitis', name: '🔥 Остеомиелит', color: '#ef4444', category: 'inflammation', targets: ['spine_thoracic','sternum_manubrium','sternum_body','sternum_xiphoid','clavicle_r','clavicle_l','scapula_r','scapula_l','rib_r1','rib_r2','rib_r3','rib_r4','rib_r5','rib_r6','rib_r7','rib_r8','rib_r9','rib_r10','rib_r11','rib_r12','rib_l1','rib_l2','rib_l3','rib_l4','rib_l5','rib_l6','rib_l7','rib_l8','rib_l9','rib_l10','rib_l11','rib_l12'] },
+  { id: 'callus', name: '🩹 Костная мозоль', color: '#22c55e', category: 'bone', targets: ['rib_r1','rib_r2','rib_r3','rib_r4','rib_r5','rib_r6','rib_r7','rib_r8','rib_r9','rib_r10','rib_r11','rib_r12','rib_l1','rib_l2','rib_l3','rib_l4','rib_l5','rib_l6','rib_l7','rib_l8','rib_l9','rib_l10','rib_l11','rib_l12'] },
+  { id: 'spine_degenerative', name: '🦴 Дегенеративные изменения позвоночника', color: '#a16207', category: 'bone', targets: ['spine_thoracic'] },
+  { id: 'compression_fracture', name: '🦴 Компрессионный перелом позвонка', color: '#dc2626', category: 'trauma', targets: ['spine_thoracic'] },
+
+  { id: 'soft_tissue_mass', name: '🟣 Образование мягких тканей', color: '#7c3aed', category: 'tumor', targets: ['soft_chest'] },
+  { id: 'soft_tissue_inflammation', name: '🔥 Воспаление мягких тканей', color: '#ef4444', category: 'inflammation', targets: ['soft_chest'] },
+
+  { id: 'norma', name: '✅ Норма', color: '#22c55e', category: 'norma', targets: [] }
+];
+
+document.querySelectorAll('.struct').forEach(el => {
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = el.dataset.struct;
+    if (!id) return;
+
+    const layer = el.closest('.layer');
+    const lid = layer ? layer.id.replace('layer-','') : null;
+    if (lid) dimAllExcept(lid);
+
+    if (state.selected.has(id)) {
+      state.selected.delete(id);
+      el.classList.remove('selected');
+      showToast('❌ Снято: ' + (STRUCT_NAMES[id] || id));
+    } else {
+      state.selected.add(id);
+      el.classList.add('selected');
+      showToast('✅ ' + (STRUCT_NAMES[id] || id));
+    }
+    state.activeStruct = id;
+
+    if (id === 'right_lung' || id === 'left_lung') {
+      const overlay = $('segmentsOverlay');
+      if (overlay) overlay.style.display = 'block';
+      dimAllExcept('lungs');
+      showToast('💡 Выберите сегмент S1–S10');
+    }
+
+    updateBreadcrumbs([{ name: STRUCT_NAMES[id] || id }]);
+    updateSelectionUI();
+  });
+});
+
+document.querySelectorAll('.segment').forEach(el => {
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    const seg = el.dataset.segment;
+    const side = el.dataset.side;
+    if (!seg || !side) return;
+    const key = side + '_' + seg;
+    if (state.selectedSegments.has(key)) {
+      state.selectedSegments.delete(key);
+      el.classList.remove('selected');
+    } else {
+      state.selectedSegments.add(key);
+      el.classList.add('selected');
+    }
+    updateSelectionUI();
+  });
+});
+
+function updateSelectionUI() {
+  const total = state.selected.size + state.selectedSegments.size;
+  $('organsCount').textContent = 'Выбрано: ' + total;
+  $('statusCount').textContent = 'Структур: ' + total + ' | Патологий: ' + state.pathologies.length;
+
+  const counterBox = $('counterBox');
+  const counterNum = $('counterNum');
+  if (counterBox && counterNum) {
+    if (total > 0) {
+      counterBox.classList.add('show');
+      counterNum.textContent = total;
+    } else {
+      counterBox.classList.remove('show');
+    }
+  }
+
+  if (total > 0) {
+    $('addPanel').classList.add('show');
+    let html = '';
+    state.selected.forEach(s => html += '<span>' + (STRUCT_NAMES[s] || s) + '</span>');
+    state.selectedSegments.forEach(k => html += '<span>' + (SEGMENT_NAMES[k] || k) + '</span>');
+    $('selectedList').innerHTML = html;
+  } else {
+    $('addPanel').classList.remove('show');
+  }
+}
+
+window.clearSelection = function() {
+  state.selected.clear();
+  state.selectedSegments.clear();
+  document.querySelectorAll('.struct.selected, .segment.selected').forEach(s => s.classList.remove('selected'));
+  updateSelectionUI();
+};
+
+window.clearAllSelection = function() {
+  state.selected.clear();
+  state.selectedSegments.clear();
+  document.querySelectorAll('.struct.selected, .segment.selected').forEach(s => s.classList.remove('selected'));
+  updateSelectionUI();
+  showToast('🧹 Всё снято');
+};
+
+window.resetBreadcrumbs = function() {
+  undimAll();
+  state.activeStruct = null;
+  state.selected.clear();
+  state.selectedSegments.clear();
+  document.querySelectorAll('.struct.selected, .segment.selected').forEach(s => s.classList.remove('selected'));
+  const overlay = $('segmentsOverlay');
+  if (overlay) overlay.style.display = 'none';
+  updateBreadcrumbs([]);
+  updateSelectionUI();
+};
+
+function updateBreadcrumbs(items) {
+  const bc = $('breadcrumbs');
+  if (!bc) return;
+  if (!items || items.length === 0) {
+    bc.innerHTML = '<span class="hint">💡 Кликни на структуру</span>';
+    return;
+  }
+  let html = '<span class="crumb" onclick="resetBreadcrumbs()">🏠 Обзор</span>';
+  items.forEach((item, i) => {
+    html += '<span style="color:var(--muted)"> › </span>';
+    if (i === items.length - 1) html += '<span class="crumb current">' + item.name + '</span>';
+    else html += '<span class="crumb">' + item.name + '</span>';
+  });
+  bc.innerHTML = html;
+}
+
+window.openPathologyTypeModal = function() {
+  const total = state.selected.size + state.selectedSegments.size;
+  if (total === 0) { showToast('⚠️ Сначала выбери структуры'); return; }
+
+  const selectedStructs = Array.from(state.selected);
+  const hasSegment = state.selectedSegments.size > 0;
+  const list = $('typeList');
+  list.innerHTML = '';
+
+  PATHOLOGIES.forEach(type => {
+    if (type.id !== 'norma' && type.targets.length > 0) {
+      const hasMatch = type.targets.some(t => selectedStructs.includes(t)) || (hasSegment && type.targets.includes('segment'));
+      if (!hasMatch) return;
+    }
+    const item = document.createElement('div');
+    item.className = 'pathology-type-item';
+    item.innerHTML = '<span class="color-dot" style="background:' + type.color + ';"></span><span>' + type.name + '</span>';
+    item.addEventListener('click', () => { closeTypeModal(); openParamModal(type.id); });
+    list.appendChild(item);
+  });
+
+  $('typeModal').classList.add('show');
+};
+
+window.closeTypeModal = function() { $('typeModal').classList.remove('show'); };
+
+function openParamModal(typeId) {
+  state.currentTypeId = typeId;
+  const type = PATHOLOGIES.find(t => t.id === typeId);
+  $('paramModalTitle').textContent = 'Параметры: ' + type.name;
+  const form = $('paramForm');
+  let html = '';
+
+  const field = (id, label, ph) => '<div class="form-group"><label>' + label + '</label><input type="text" id="' + id + '" placeholder="' + (ph||'') + '"/></div>';
+  const num = (id, label, ph) => '<div class="form-group"><label>' + label + '</label><input type="number" id="' + id + '" placeholder="' + (ph||'') + '"/></div>';
+  const sel = (id, label, opts) => '<div class="form-group"><label>' + label + '</label><select id="' + id + '">' + opts.map(o => '<option value="' + o.v + '">' + o.t + '</option>').join('') + '</select></div>';
+  const row2 = (id1, l1, id2, l2) => '<div class="form-group"><label>' + l1 + ' / ' + l2 + '</label><div class="form-row"><input type="number" id="' + id1 + '" placeholder="' + l1 + '"/><input type="number" id="' + id2 + '" placeholder="' + l2 + '"/></div></div>';
+
+  if (typeId === 'pneumonia') {
+    html += sel('paramType', 'Тип', [{v:'очаговая',t:'Очаговая'},{v:'долевая',t:'Долевая'},{v:'сегментарная',t:'Сегментарная'},{v:'интерстициальная',t:'Интерстициальная'}]);
+    html += row2('paramSize1', 'Длина', 'paramSize2', 'Ширина');
+    html += num('paramDensity', 'Плотность (HU)', '30');
+  } else if (typeId === 'tb') {
+    html += sel('paramForm', 'Форма', [{v:'инфильтративная',t:'Инфильтративная'},{v:'очаговая',t:'Очаговая'},{v:'кавернозная',t:'Кавернозная'},{v:'диссеминированная',t:'Диссеминированная'}]);
+    html += row2('paramSize1', 'Длина', 'paramSize2', 'Ширина');
+  } else if (typeId === 'tumor_lung' || typeId === 'metastasis_lung') {
+    html += num('paramCount', 'Количество', '1');
+    html += row2('paramSize1', 'Длина', 'paramSize2', 'Ширина');
+    html += sel('paramContours', 'Контуры', [{v:'ровные',t:'Ровные'},{v:'бугристые',t:'Бугристые'},{v:'нечёткие',t:'Нечёткие'},{v:'спикулообразные',t:'Спикулообразные'}]);
+    html += sel('paramContrast', 'Контраст', [{v:'умеренное',t:'Умеренное'},{v:'интенсивное',t:'Интенсивное'},{v:'периферическое',t:'Периферическое'},{v:'не накапливает',t:'Не накапливает'}]);
+  } else if (typeId === 'atelectasis') {
+    html += sel('paramType', 'Тип', [{v:'обтурационный',t:'Обтурационный'},{v:'компрессионный',t:'Компрессионный'},{v:'дисковидный',t:'Дисковидный'}]);
+  } else if (typeId === 'emphysema') {
+    html += sel('paramType', 'Тип', [{v:'центрилобулярная',t:'Центрилобулярная'},{v:'панацинарная',t:'Панацинарная'},{v:'парасептальная',t:'Парасептальная'},{v:'буллёзная',t:'Буллёзная'}]);
+    html += sel('paramExtent', 'Распространённость', [{v:'локальная',t:'Локальная'},{v:'распространённая',t:'Распространённая'},{v:'диффузная',t:'Диффузная'}]);
+  } else if (typeId === 'fibrosis') {
+    html += sel('paramType', 'Тип', [{v:'линейный',t:'Линейный'},{v:'сетчатый',t:'Сетчатый'},{v:'сотовый',t:'Сотовый'}]);
+  } else if (typeId === 'stenosis') {
+    html += sel('paramDegree', 'Степень', [{v:'лёгкий',t:'Лёгкий'},{v:'умеренный',t:'Умеренный'},{v:'выраженный',t:'Выраженный'},{v:'критический',t:'Критический'}]);
+    html += field('paramCause', 'Причина', 'опухоль / рубцовый / сдавление');
+  } else if (typeId === 'obstruction') {
+    html += sel('paramCause', 'Причина', [{v:'опухоль',t:'Опухоль'},{v:'слизистая пробка',t:'Слизистая пробка'},{v:'инородное тело',t:'Инородное тело'},{v:'сдавление извне',t:'Сдавление извне'}]);
+  } else if (typeId === 'pe') {
+    html += sel('paramDegree', 'Степень', [{v:'частичная',t:'Частичная'},{v:'полная',t:'Полная'}]);
+    html += sel('paramRisk', 'Риск', [{v:'низкий (< 20%)',t:'Низкий'},{v:'умеренный (20–40%)',t:'Умеренный'},{v:'высокий (> 40%)',t:'Высокий'}]);
+    html += num('paramQanadli', 'Индекс Qanadli (%)', '35');
+  } else if (typeId === 'pa_dilation') {
+    html += num('paramDiameter', 'Диаметр (мм)', '32');
+  } else if (typeId === 'lymphadenopathy') {
+    html += num('paramSize', 'Размер наибольшего (мм)', '15');
+    html += sel('paramStructure', 'Структура', [{v:'однородная',t:'Однородная'},{v:'неоднородная',t:'Неоднородная'},{v:'с кальцинатами',t:'С кальцинатами'},{v:'конгломерат',t:'Конгломерат'}]);
+  } else if (typeId === 'aorta_calc') {
+    html += sel('paramDegree', 'Степень', [{v:'умеренный',t:'Умеренный'},{v:'выраженный',t:'Выраженный'},{v:'резко выраженный',t:'Резко выраженный'}]);
+  } else if (typeId === 'dissection') {
+    html += sel('paramStanford', 'Stanford', [{v:'A',t:'A'},{v:'B',t:'B'}]);
+    html += sel('paramDebakey', 'DeBakey', [{v:'I',t:'I'},{v:'II',t:'II'},{v:'IIIA',t:'IIIA'},{v:'IIIB',t:'IIIB'}]);
+  } else if (typeId === 'aneurysm') {
+    html += num('paramDiameter', 'Диаметр (мм)', '45');
+    html += sel('paramType', 'Тип', [{v:'истинная',t:'Истинная'},{v:'ложная',t:'Ложная'},{v:'после расслоения',t:'После расслоения'}]);
+    html += sel('paramThrombus', 'Тромб', [{v:'нет',t:'Нет'},{v:'есть',t:'Есть'}]);
+  } else if (typeId === 'cardio') {
+    html += num('paramIndex', 'КТИ', '0.55');
+    html += sel('paramFluid', 'Жидкость в перикарде', [{v:'нет',t:'Нет'},{v:'мало',t:'Мало'},{v:'умеренно',t:'Умеренно'},{v:'много',t:'Много'}]);
+  } else if (typeId === 'pericarditis') {
+    html += num('paramThickness', 'Толщина перикарда (мм)', '6');
+  } else if (typeId === 'esophagus_path') {
+    html += sel('paramType', 'Тип', [{v:'сужение',t:'Сужение'},{v:'дилатация',t:'Дилатация'},{v:'утолщение стенки',t:'Утолщение стенки'},{v:'опухоль',t:'Опухоль'}]);
+  } else if (typeId === 'fracture_trauma' || typeId === 'fracture_path') {
+    html += sel('paramType', 'Тип перелома', [{v:'линейный',t:'Линейный'},{v:'оскольчатый',t:'Оскольчатый'},{v:'вдавленный',t:'Вдавленный'},{v:'компрессионный',t:'Компрессионный'}]);
+    html += sel('paramShift', 'Смещение отломков', [{v:'нет',t:'Нет'},{v:'есть',t:'Есть'}]);
+  } else if (typeId === 'bone_destruction') {
+    html += sel('paramType', 'Характер', [{v:'остеолитическая',t:'Остеолитическая'},{v:'остеобластическая',t:'Остеобластическая'},{v:'смешанная',t:'Смешанная'}]);
+    html += row2('paramSize1', 'Длина', 'paramSize2', 'Ширина');
+  } else if (typeId === 'bone_metastasis') {
+    html += num('paramCount', 'Количество очагов', '1');
+    html += sel('paramType', 'Характер', [{v:'остеолитическая',t:'Остеолитическая'},{v:'остеобластическая',t:'Остеобластическая'},{v:'смешанная',t:'Смешанная'}]);
+    html += row2('paramSize1', 'Длина', 'paramSize2', 'Ширина');
+  } else if (typeId === 'plasmacytoma') {
+    html += sel('paramType', 'Тип', [{v:'солитарная плазмоцитома',t:'Солитарная плазмоцитома'},{v:'множественная миелома',t:'Множественная миелома'}]);
+    html += num('paramCount', 'Количество очагов', '1');
+  } else if (typeId === 'osteoporosis') {
+    html += sel('paramDegree', 'Степень', [{v:'лёгкая',t:'Лёгкая'},{v:'умеренная',t:'Умеренная'},{v:'выраженная',t:'Выраженная'}]);
+  } else if (typeId === 'osteomyelitis') {
+    html += sel('paramType', 'Тип', [{v:'острый',t:'Острый'},{v:'хронический',t:'Хронический'}]);
+  } else if (typeId === 'callus') {
+    html += sel('paramStage', 'Стадия', [{v:'формирующаяся',t:'Формирующаяся'},{v:'зрелая',t:'Зрелая'}]);
+  } else if (typeId === 'spine_degenerative') {
+    html += field('paramLevels', 'Уровни', 'Th5-Th8');
+    html += sel('paramDegree', 'Степень', [{v:'умеренная',t:'Умеренная'},{v:'выраженная',t:'Выраженная'}]);
+  } else if (typeId === 'compression_fracture') {
+    html += field('paramVertebra', 'Позвонок', 'Th7');
+    html += sel('paramDegree', 'Степень', [{v:'I (до 25%)',t:'I (до 25%)'},{v:'II (25–50%)',t:'II (25–50%)'},{v:'III (> 50%)',t:'III (> 50%)'}]);
+    html += sel('paramShift', 'Смещение', [{v:'нет',t:'Нет'},{v:'есть',t:'Есть'}]);
+  } else if (typeId === 'soft_tissue_mass') {
+    html += row2('paramSize1', 'Длина', 'paramSize2', 'Ширина');
+    html += sel('paramDensity', 'Плотность', [{v:'мягкотканная',t:'Мягкотканная'},{v:'жидкостная',t:'Жидкостная'},{v:'жировая',t:'Жировая'}]);
+  } else if (typeId === 'soft_tissue_inflammation') {
+    html += sel('paramType', 'Тип', [{v:'отёк',t:'Отёк'},{v:'абсцесс',t:'Абсцесс'},{v:'флегмона',t:'Флегмона'}]);
+  }
+
+  html += '<div class="form-group"><label>Дополнительное описание:</label><textarea id="paramExtra" placeholder="Дополнительно..."></textarea></div>';
+  html += '<div class="form-buttons"><button class="btn-save" onclick="savePathology()">✅ Сохранить</button><button class="btn-cancel" onclick="closeParamModal()">Отмена</button></div>';
+  form.innerHTML = html;
+  $('paramModal').classList.add('show');
+}
+
+window.closeParamModal = function() { $('paramModal').classList.remove('show'); state.currentTypeId = null; };
+
+window.savePathology = function() {
+  const type = PATHOLOGIES.find(t => t.id === state.currentTypeId);
+  const targets = [...Array.from(state.selected), ...Array.from(state.selectedSegments)];
+  if (targets.length === 0) { showToast('⚠️ Нет выбранных структур'); return; }
+
+  const params = {};
+  const gv = id => { const el = $(id); return el ? el.value : ''; };
+  const gn = id => { const v = gv(id); return v === '' ? null : parseFloat(v); };
+  ['paramDegree','paramType','paramCause','paramRisk','paramStructure','paramContours','paramContrast',
+   'paramExtent','paramStanford','paramDebakey','paramThrombus','paramFluid','paramExtra',
+   'paramForm','paramShift','paramStage','paramLevels','paramVertebra'].forEach(k => {
+    const v = gv(k); if (v) params[k] = v;
+  });
+  ['paramSize','paramDiameter','paramSize1','paramSize2','paramCount','paramThickness','paramIndex','paramQanadli','paramDensity']
+  .forEach(k => { const v = gn(k); if (v !== null) params[k] = v; });
+
+  state.pathologies.push({ id: 'path_' + Date.now(), type, targets, params });
+
+  targets.forEach(t => {
+    document.querySelectorAll('.struct[data-struct="' + t + '"]').forEach(el => el.classList.add('has-pathology'));
+    if (t.startsWith('right_') || t.startsWith('left_')) {
+      const [side, seg] = t.split('_');
+      document.querySelectorAll('.segment[data-segment="' + seg + '"][data-side="' + side + '"]').forEach(el => el.classList.add('has-pathology'));
+    }
+  });
+
+  state.selected.clear();
+  state.selectedSegments.clear();
+  document.querySelectorAll('.struct.selected, .segment.selected').forEach(el => el.classList.remove('selected'));
+  closeParamModal();
+  updateSelectionUI();
+  updatePathologiesUI();
+  updateFinalProtocol();
+  showToast('✅ Патология добавлена: ' + type.name);
+};
+
+function updatePathologiesUI() {
+  $('pathologyCount').textContent = 'Патологий: ' + state.pathologies.length;
+  const total = state.selected.size + state.selectedSegments.size;
+  $('statusCount').textContent = 'Структур: ' + total + ' | Патологий: ' + state.pathologies.length;
+
+  if (state.pathologies.length === 0) {
+    $('pathologiesContainer').innerHTML = '<div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Кликни на структуру на схеме слева</div>';
+    return;
+  }
+
+  let html = '';
+  state.pathologies.forEach((p, i) => {
+    html += '<div class="pathology-card ' + p.type.category + '-card">';
+    html += '<div class="pc-header"><div class="pc-title"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + p.type.color + ';"></span>' + p.type.name + '</div>';
+    html += '<button class="pc-remove" onclick="removePathology(' + i + ')">×</button></div>';
+    html += '<div class="pc-organs">';
+    p.targets.forEach(t => {
+      const name = SEGMENT_NAMES[t] || STRUCT_NAMES[t] || t;
+      html += '<span>' + name + '</span>';
+    });
+    html += '</div>';
+    html += '<div class="pc-params">' + buildParamTags(p) + '</div>';
+    html += '<div class="pc-desc">' + generateDescription(p) + '</div>';
+    html += '</div>';
+  });
+  $('pathologiesContainer').innerHTML = html;
+}
+
+function buildParamTags(p) {
+  const params = p.params;
+  const tags = [];
+  if (params.paramSize) tags.push('📏 ' + params.paramSize + ' мм');
+  if (params.paramSize1 && params.paramSize2) tags.push('📏 ' + params.paramSize1 + '×' + params.paramSize2 + ' мм');
+  if (params.paramDiameter) tags.push('📏 Ø ' + params.paramDiameter + ' мм');
+  if (params.paramDensity) tags.push('🔢 ' + params.paramDensity + ' HU');
+  if (params.paramCount) tags.push('🔢 ' + params.paramCount + ' шт');
+  if (params.paramDegree) tags.push('⚙️ ' + params.paramDegree);
+  if (params.paramStanford) tags.push('S' + params.paramStanford);
+  if (params.paramDebakey) tags.push('DeBakey ' + params.paramDebakey);
+  if (params.paramQanadli) tags.push('Qanadli ' + params.paramQanadli + '%');
+  if (params.paramVertebra) tags.push('📍 ' + params.paramVertebra);
+  return tags.map(t => '<span class="param-tag">' + t + '</span>').join('');
+}
+
+function generateDescription(p) {
+  const params = p.params || {};
+  const type = p.type.id;
+  const targets = p.targets.map(t => SEGMENT_NAMES[t] || STRUCT_NAMES[t] || t).join(', ');
+  let d = '';
+
+  if (type === 'pneumonia') d = 'Пневмония' + (params.paramType ? ' (' + params.paramType + ')' : '') + ' в ' + targets + (params.paramSize1 && params.paramSize2 ? ', ' + params.paramSize1 + '×' + params.paramSize2 + ' мм' : '') + (params.paramDensity ? ', ~' + params.paramDensity + ' HU' : '') + '.';
+  else if (type === 'tb') d = 'Туберкулёз' + (params.paramForm ? ' (' + params.paramForm + ')' : '') + ' в ' + targets + '.';
+  else if (type === 'tumor_lung' || type === 'metastasis_lung') d = (params.paramCount > 1 ? params.paramCount + ' образований' : 'Образование') + ' в ' + targets + (params.paramSize1 && params.paramSize2 ? ', ' + params.paramSize1 + '×' + params.paramSize2 + ' мм' : '') + (params.paramContours ? ', контуры ' + params.paramContours : '') + (params.paramContrast ? ', накопление ' + params.paramContrast : '') + '.';
+  else if (type === 'atelectasis') d = 'Ателектаз' + (params.paramType ? ' (' + params.paramType + ')' : '') + ' в ' + targets + '.';
+  else if (type === 'emphysema') d = 'Эмфизема' + (params.paramType ? ' (' + params.paramType + ')' : '') + (params.paramExtent ? ', ' + params.paramExtent : '') + ' в ' + targets + '.';
+  else if (type === 'fibrosis') d = 'Фиброз' + (params.paramType ? ' (' + params.paramType + ')' : '') + ' в ' + targets + '.';
+  else if (type === 'stenosis') d = 'Стеноз' + (params.paramDegree ? ' ' + params.paramDegree : '') + ' ' + targets + (params.paramCause ? ', причина: ' + params.paramCause : '') + '.';
+  else if (type === 'obstruction') d = 'Обтурация ' + targets + (params.paramCause ? ', причина: ' + params.paramCause : '') + '.';
+  else if (type === 'pe') d = 'ТЭЛА: ' + targets + (params.paramDegree ? ', обструкция ' + params.paramDegree : '') + (params.paramQanadli ? ', Qanadli ' + params.paramQanadli + '%' : '') + (params.paramRisk ? ' (риск ' + params.paramRisk + ')' : '') + '.';
+  else if (type === 'pa_dilation') d = 'Расширение ' + targets + ' до ' + (params.paramDiameter || '—') + ' мм.';
+  else if (type === 'lymphadenopathy') d = 'Увеличение ' + targets + ' до ' + (params.paramSize || '—') + ' мм' + (params.paramStructure ? ', ' + params.paramStructure : '') + '.';
+  else if (type === 'aorta_calc') d = 'Кальциноз ' + targets + (params.paramDegree ? ' (' + params.paramDegree + ')' : '') + '.';
+  else if (type === 'dissection') d = 'Расслоение ' + targets + ': Stanford ' + (params.paramStanford || '—') + ', DeBakey ' + (params.paramDebakey || '—') + '.';
+  else if (type === 'aneurysm') d = 'Аневризма ' + targets + (params.paramDiameter ? ', Ø ' + params.paramDiameter + ' мм' : '') + (params.paramType ? ', ' + params.paramType : '') + (params.paramThrombus === 'есть' ? ', с тромбом' : '') + '.';
+  else if (type === 'cardio') d = 'Кардиомегалия' + (params.paramIndex ? ', КТИ ' + params.paramIndex : '') + (params.paramFluid && params.paramFluid !== 'нет' ? ', жидкость в перикарде (' + params.paramFluid + ')' : '') + '.';
+  else if (type === 'pericarditis') d = 'Перикардит' + (params.paramThickness ? ', толщина ' + params.paramThickness + ' мм' : '') + '.';
+  else if (type === 'esophagus_path') d = 'Пищевод: ' + (params.paramType || 'изменения') + '.';
+  else if (type === 'fracture_trauma' || type === 'fracture_path') {
+    const kind = type === 'fracture_trauma' ? 'Травматический перелом' : 'Патологический перелом';
+    d = kind + ' ' + targets + (params.paramType ? ', ' + params.paramType : '') + (params.paramShift === 'есть' ? ', со смещением' : ', без смещения') + '.';
+  }
+  else if (type === 'bone_destruction') d = 'Костная деструкция ' + targets + (params.paramType ? ', ' + params.paramType : '') + (params.paramSize1 && params.paramSize2 ? ', ' + params.paramSize1 + '×' + params.paramSize2 + ' мм' : '') + '.';
+  else if (type === 'bone_metastasis') d = 'Метастазы в кости: ' + (params.paramCount || 1) + ' очаг(ов) в ' + targets + (params.paramType ? ', ' + params.paramType : '') + '.';
+  else if (type === 'plasmacytoma') d = (params.paramType || 'Плазмоцитома') + ' ' + targets + (params.paramCount > 1 ? ', ' + params.paramCount + ' очагов' : '') + '.';
+  else if (type === 'osteoporosis') d = 'Остеопороз ' + targets + (params.paramDegree ? ' (' + params.paramDegree + ')' : '') + '.';
+  else if (type === 'osteomyelitis') d = 'Остеомиелит ' + targets + (params.paramType ? ' (' + params.paramType + ')' : '') + '.';
+  else if (type === 'callus') d = 'Костная мозоль ' + targets + (params.paramStage ? ' (' + params.paramStage + ')' : '') + '.';
+  else if (type === 'spine_degenerative') d = 'Дегенеративные изменения позвоночника' + (params.paramLevels ? ' на уровне ' + params.paramLevels : '') + (params.paramDegree ? ', ' + params.paramDegree : '') + '.';
+  else if (type === 'compression_fracture') d = 'Компрессионный перелом ' + (params.paramVertebra || targets) + (params.paramDegree ? ', степень ' + params.paramDegree : '') + (params.paramShift === 'есть' ? ', со смещением' : '') + '.';
+  else if (type === 'soft_tissue_mass') d = 'Образование мягких тканей ' + targets + (params.paramSize1 && params.paramSize2 ? ', ' + params.paramSize1 + '×' + params.paramSize2 + ' мм' : '') + (params.paramDensity ? ', плотность ' + params.paramDensity : '') + '.';
+  else if (type === 'soft_tissue_inflammation') d = 'Воспаление мягких тканей ' + targets + (params.paramType ? ' (' + params.paramType + ')' : '') + '.';
+  else d = p.type.name + ' — ' + targets + '.';
+
+  if (params.paramExtra) d += ' ' + params.paramExtra;
+  return d;
+}
+
+window.removePathology = function(i) {
+  state.pathologies.splice(i, 1);
+  updatePathologiesUI();
+  updateFinalProtocol();
+  showToast('🗑 Удалено');
+};
+
+function updateFinalProtocol() {
+  let text = '';
+
+  const lungPaths = state.pathologies.filter(p => p.targets.some(t => t === 'right_lung' || t === 'left_lung' || t.startsWith('right_S') || t.startsWith('left_S')));
+  text += 'ЛЕГКИЕ. ';
+  if (lungPaths.length === 0) text += 'Очаговых и инфильтративных изменений не выявлено. ';
+  else lungPaths.forEach(p => text += generateDescription(p) + ' ');
+  text += '\n\n';
+
+  const bronchPaths = state.pathologies.filter(p => p.targets.some(t => t.includes('bronchus') || t === 'trachea'));
+  text += 'ТРАХЕЯ И БРОНХИ. ';
+  if (bronchPaths.length === 0) text += 'Просвет свободен. Стенки бронхов уплотнены.';
+  else bronchPaths.forEach(p => text += generateDescription(p) + ' ');
+  text += '\n\n';
+
+  const paPaths = state.pathologies.filter(p => p.targets.some(t => t.includes('pa_') || t === 'r_pa' || t === 'l_pa'));
+  if (paPaths.length > 0) {
+    text += 'ЛЁГОЧНАЯ АРТЕРИЯ. ';
+    paPaths.forEach(p => text += generateDescription(p) + ' ');
+    text += '\n\n';
+  }
+
+  const bonePaths = state.pathologies.filter(p => p.targets.some(t => ['spine_thoracic','sternum_manubrium','sternum_body','sternum_xiphoid','clavicle_r','clavicle_l','scapula_r','scapula_l'].includes(t) || t.startsWith('rib_')));
+  text += 'КОСТНО-СУСТАВНАЯ СИСТЕМА. ';
+  if (bonePaths.length === 0) {
+    text += 'Костных травматических и деструктивных изменений не выявлено. Грудина, рёбра, ключицы, лопатки без особенностей. Позвоночник: дегенеративные изменения.';
+  } else {
+    bonePaths.forEach(p => text += generateDescription(p) + ' ');
+    const hasSpine = bonePaths.some(p => p.targets.includes('spine_thoracic'));
+    if (!hasSpine) text += 'Позвоночник: дегенеративные изменения.';
+  }
+  text += '\n\n';
+
+  text += 'СРЕДОСТЕНИЕ. Не смещено. ';
+  const heartPaths = state.pathologies.filter(p => p.targets.some(t => t.startsWith('heart')));
+  if (heartPaths.length === 0) text += 'Сердце не увеличено. В полости перикарда жидкости нет.';
+  else heartPaths.forEach(p => text += generateDescription(p) + ' ');
+  text += '\n\n';
+
+  const aortaPaths = state.pathologies.filter(p => p.targets.some(t => t.startsWith('aorta')));
+  text += 'АОРТА. ';
+  if (aortaPaths.length === 0) text += 'Стенки без особенностей. Признаков расслоения и аневризмы нет.';
+  else aortaPaths.forEach(p => text += generateDescription(p) + ' ');
+  text += '\n\n';
+
+  const lnPaths = state.pathologies.filter(p => p.targets.some(t => t.startsWith('ln_')));
+  text += 'ЛИМФАТИЧЕСКИЕ УЗЛЫ (IASLC). ';
+  if (lnPaths.length === 0) text += 'Не увеличены.';
+  else lnPaths.forEach(p => text += generateDescription(p) + ' ');
+  text += '\n\n';
+
+  const esoPaths = state.pathologies.filter(p => p.targets.includes('esophagus'));
+  if (esoPaths.length > 0) {
+    text += 'ПИЩЕВОД. ';
+    esoPaths.forEach(p => text += generateDescription(p) + ' ');
+    text += '\n\n';
+  }
+
+  const softPaths = state.pathologies.filter(p => p.targets.includes('soft_chest'));
+  if (softPaths.length > 0) {
+    text += 'МЯГКИЕ ТКАНИ. ';
+    softPaths.forEach(p => text += generateDescription(p) + ' ');
+    text += '\n\n';
+  }
+
+  text += 'НА ИССЛЕДОВАННОМ УРОВНЕ. Дегенеративные изменения позвоночника.';
+
+  $('finalProtocol').value = text;
+}
+
+window.generateFinalProtocol = function() {
+  updateFinalProtocol();
+  showToast('📋 Протокол сформирован');
+  $('finalProtocol').focus();
+  $('finalProtocol').select();
+};
+
+window.copyToClipboard = function() {
+  $('finalProtocol').select();
+  document.execCommand('copy');
+  if (navigator.clipboard) navigator.clipboard.writeText($('finalProtocol').value).then(() => showToast('✅ Скопировано!')).catch(() => showToast('✅ Скопировано!'));
+  else showToast('✅ Скопировано!');
+};
+
+window.resetAll = function() {
+  if (!confirm('Очистить всё?')) return;
+  state.selected.clear();
+  state.selectedSegments.clear();
+  state.pathologies = [];
+  state.activeStruct = null;
+  document.querySelectorAll('.struct.selected, .struct.has-pathology, .segment.selected, .segment.has-pathology').forEach(el => {
+    el.classList.remove('selected', 'has-pathology');
+  });
+  const overlay = $('segmentsOverlay');
+  if (overlay) overlay.style.display = 'none';
+  undimAll();
+  updateBreadcrumbs([]);
+  updateSelectionUI();
+  updatePathologiesUI();
+  updateFinalProtocol();
+  showToast('🔄 Сброшено');
+};
+
+function sendToParent() {
+  const text = $('finalProtocol').value || '';
+  if (!text.trim()) { alert('⚠️ Сначала сформируйте протокол'); return; }
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'widget-result', text: text }, '*');
+  } else {
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => alert('✅ Скопировано'));
+  }
+}
+
+ALL_LAYERS.forEach(id => {
+  const layer = $('layer-' + id);
+  if (layer) layer.classList.remove('hidden');
+});
+document.querySelectorAll('#layersPanel input[type="checkbox"]').forEach(cb => {
+  cb.checked = true;
+  if (cb.parentElement) cb.parentElement.classList.add('active');
+});
+
+updateSelectionUI();
+updatePathologiesUI();
+updateFinalProtocol();
+
+$('typeModal').addEventListener('click', e => { if (e.target === $('typeModal')) closeTypeModal(); });
+$('paramModal').addEventListener('click', e => { if (e.target === $('paramModal')) closeParamModal(); });
+
+console.log('🫁 ОГК v5 загружен');
+})();
+</script>
+
+</body>
+</html>

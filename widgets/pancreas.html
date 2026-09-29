@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Поджелудочная железа — анатомические части</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --border: #cbd5e1;
+            --text: #0f172a;
+            --muted: #64748b;
+            --primary: #8b5cf6;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --radius: 16px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--card);
+            padding: 14px 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header .badge {
+            background: var(--primary);
+            color: #fff;
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .toolbar button:hover {
+            background: var(--border);
+            transform: translateY(-2px);
+        }
+        .toolbar .primary { background: var(--primary); color: #fff; border: none; }
+        .toolbar .primary:hover { background: #7c3aed; }
+        .toolbar .success { background: var(--success); color: #fff; border: none; }
+        .toolbar .success:hover { background: #16a34a; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            flex: 1;
+        }
+        @media (max-width: 1000px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-header {
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header .count {
+            font-weight: 400;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+        .card-body {
+            padding: 16px 20px;
+            flex: 1;
+            overflow: auto;
+            max-height: 700px;
+        }
+
+        .pancreas-container {
+            padding: 8px;
+            background: #fafcff;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .pancreas-svg-wrap {
+            background: #fff;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .pancreas-svg-wrap svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .pancreas-svg-wrap svg .part {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            stroke: #1e293b;
+            stroke-width: 1.5;
+            opacity: 0.95;
+        }
+        .pancreas-svg-wrap svg .part:hover {
+            opacity: 1;
+            filter: brightness(1.1) drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
+        }
+        .pancreas-svg-wrap svg .part.selected {
+            stroke: #7c3aed;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.6));
+            opacity: 1;
+        }
+        .pancreas-svg-wrap svg .part.pathology {
+            stroke: #dc2626;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.7));
+            animation: patho-pulse 1.2s ease-in-out infinite;
+            opacity: 1;
+        }
+
+        @keyframes patho-pulse {
+            0%, 100% { filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.3)); }
+            50% { filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.8)); }
+        }
+
+        .pancreas-svg-wrap svg .part-label-text {
+            font-size: 14px;
+            font-weight: 700;
+            fill: #0f172a;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .pancreas-svg-wrap svg .duct-label {
+            font-size: 11px;
+            font-weight: 600;
+            fill: #64748b;
+            pointer-events: none;
+            user-select: none;
+            font-style: italic;
+        }
+
+        .pancreas-svg-wrap svg .duodenum {
+            fill: #f9a8b8;
+            stroke: #d4727f;
+            stroke-width: 1.5;
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-top: 10px;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.15);
+        }
+
+        /* === ОВЕРЛЕЙ ПОД МОДАЛКОЙ === */
+        .pathology-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+            display: none;
+        }
+        .pathology-overlay.show { display: block; }
+
+        /* === МОДАЛЬНОЕ ОКНО ВЫБОРА ПАТОЛОГИИ (по центру) === */
+        .pathology-dropdown {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            border: 2px solid var(--primary);
+            border-radius: 14px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            padding: 16px;
+            z-index: 9999;
+            min-width: 320px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+            animation: dropIn 0.2s ease;
+        }
+        .pathology-dropdown.show { display: block; }
+
+        @keyframes dropIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .pathology-dropdown .dropdown-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .pathology-dropdown .dropdown-item {
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+            margin-bottom: 4px;
+        }
+        .pathology-dropdown .dropdown-item:hover { background: #f1f5f9; }
+        .pathology-dropdown .dropdown-item .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .pathology-dropdown .dropdown-item.norma {
+            background: #f0fdf4;
+            border: 1px solid var(--success);
+            font-weight: 600;
+        }
+        .pathology-dropdown .dropdown-item.custom {
+            background: #fef3c7;
+            border: 1px solid var(--warning);
+        }
+        .pathology-dropdown .close-dropdown {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            cursor: pointer;
+            font-size: 1.3rem;
+            color: var(--muted);
+            background: none;
+            border: none;
+            padding: 2px 8px;
+            border-radius: 6px;
+            line-height: 1;
+        }
+        .pathology-dropdown .close-dropdown:hover { background: #f1f5f9; color: var(--danger); }
+
+        .protocol-section { margin-bottom: 20px; }
+        .protocol-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .selected-pathology-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+        }
+        .selected-pathology-card.norma-card {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+        .selected-pathology-card .sp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .selected-pathology-card .sp-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .selected-pathology-card .sp-remove {
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 1.1rem;
+            background: none;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .selected-pathology-card .sp-remove:hover { background: var(--danger); color: #fff; }
+        .selected-pathology-card .sp-parts {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .selected-pathology-card .sp-parts span {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .ct-description {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            font-family: 'Segoe UI', sans-serif;
+            background: #fff;
+            color: var(--text);
+            resize: vertical;
+        }
+        .ct-description:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        }
+
+        .pattern-builder {
+            background: #fffbeb;
+            border: 1px dashed var(--warning);
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 16px;
+        }
+        .pattern-builder .pb-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #92400e;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pattern-builder input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            background: #fff;
+        }
+        .pattern-builder input:focus { outline: none; border-color: var(--warning); }
+        .pattern-builder textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            background: #fff;
+            resize: vertical;
+        }
+        .pattern-builder textarea:focus { outline: none; border-color: var(--warning); }
+        .pattern-builder .pb-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pattern-builder button {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+        }
+        .pattern-builder .btn-save { background: var(--warning); color: #fff; }
+        .pattern-builder .btn-save:hover { background: #d97706; }
+        .pattern-builder .btn-clear { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+        .custom-patterns-list {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .custom-pattern-tag {
+            background: #fef3c7;
+            border: 1px solid var(--warning);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #92400e;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .custom-pattern-tag .remove-pattern {
+            cursor: pointer;
+            font-weight: 700;
+            opacity: 0.7;
+        }
+        .custom-pattern-tag .remove-pattern:hover { opacity: 1; color: var(--danger); }
+
+        .final-protocol {
+            width: 100%;
+            min-height: 200px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            font-family: 'Segoe UI', monospace;
+            background: #fafcff;
+            color: var(--text);
+            resize: vertical;
+            margin-top: 12px;
+        }
+        .final-protocol:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        }
+
+        .status-bar {
+            margin-top: 24px;
+            padding: 12px 20px;
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            font-size: 0.8rem;
+            color: var(--muted);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--text);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 10001;
+            font-size: 0.9rem;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 700px) {
+            body { padding: 12px; }
+            .header { flex-direction: column; align-items: stretch; }
+            .toolbar { justify-content: stretch; }
+            .toolbar button { flex: 1; justify-content: center; font-size: 0.7rem; padding: 6px 10px; }
+            .card-body { max-height: 500px; padding: 12px; }
+            .pancreas-svg-wrap svg .part-label-text { font-size: 11px; }
+            .pathology-dropdown {
+                min-width: 90vw;
+                max-width: 95vw;
+                max-height: 85vh;
+            }
+        }
+
+        @media print {
+            .toolbar, .status-bar, .pathology-dropdown, .pathology-overlay, .pattern-builder { display: none !important; }
+            .pancreas-svg-wrap svg .part { cursor: default !important; }
+            .pancreas-svg-wrap svg .part.selected { stroke: #000 !important; stroke-width: 2.5 !important; filter: none !important; }
+            .pancreas-svg-wrap svg .part.pathology { stroke: #000 !important; stroke-width: 3 !important; filter: none !important; animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div>
+            <h1>🫁 <span>Поджелудочная железа</span></h1>
+            <span class="badge">Анатомические части</span>
+        </div>
+        <div class="toolbar">
+            <button class="success" onclick="resetAll()">🔄 Сбросить</button>
+            <button class="primary" onclick="generateFinalProtocol()">📋 Итоговый протокол</button>
+            <button onclick="copyToClipboard()">📋 Копировать</button>
+            <button onclick="window.print()">🖨 Печать</button>
+            <button class="success" onclick="sendToParent()" style="background:linear-gradient(135deg,#22c55e,#16a34a);">📥 Вставить в КТ-Журнал</button>
+        </div>
+    </header>
+
+    <div class="main-grid">
+
+        <div class="card">
+            <div class="card-header">
+                <span>📍 Поджелудочная железа (кликни на часть → выбери патологию)</span>
+                <span class="count" id="partsCount">Выбрано: 0</span>
+            </div>
+            <div class="card-body">
+                <div class="pancreas-container">
+                    <div class="pancreas-svg-wrap">
+                        <svg viewBox="0 0 700 450" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Поджелудочная железа">
+
+                            <path class="duodenum" d="M180 60 Q140 60 110 100 Q80 150 80 220 Q80 300 120 360 Q160 410 220 420 Q280 425 320 400 Q350 380 340 340 Q330 310 300 300 Q260 290 230 310 Q200 330 180 360 Q160 380 150 350 Q130 300 130 240 Q130 170 160 120 Q180 90 200 80 Q220 70 220 60 Q220 55 200 60 Z" />
+
+                            <path class="part" data-part="head" role="button" tabindex="0" aria-label="Головка"
+                                  d="M200 130 Q240 110 280 120 Q310 135 320 170 Q325 210 310 250 Q290 280 260 290 Q230 295 210 280 Q190 260 185 230 Q180 190 190 160 Q195 140 200 130 Z"
+                                  fill="#fcd34d"/>
+                            <text class="part-label-text" x="235" y="215">Головка</text>
+
+                            <path class="part" data-part="uncinate" role="button" tabindex="0" aria-label="Крючковидный отросток"
+                                  d="M230 270 Q260 260 290 270 Q310 285 315 310 Q315 335 295 345 Q270 350 245 340 Q225 325 220 300 Q220 280 230 270 Z"
+                                  fill="#f59e0b"/>
+                            <text class="part-label-text" x="245" y="315" style="font-size:10px;">Крюч.</text>
+
+                            <path class="part" data-part="neck" role="button" tabindex="0" aria-label="Шейка"
+                                  d="M310 150 Q340 140 370 145 Q395 155 405 180 Q410 210 400 240 Q385 265 360 275 Q335 280 315 265 Q300 250 295 220 Q290 190 300 165 Q305 155 310 150 Z"
+                                  fill="#fda4af"/>
+                            <text class="part-label-text" x="335" y="215">Шейка</text>
+
+                            <path class="part" data-part="body" role="button" tabindex="0" aria-label="Тело"
+                                  d="M395 155 Q440 140 500 140 Q560 145 600 160 Q625 175 630 200 Q630 225 610 245 Q580 265 530 270 Q470 272 420 260 Q395 250 385 225 Q375 200 380 175 Q385 160 395 155 Z"
+                                  fill="#86efac"/>
+                            <text class="part-label-text" x="490" y="210">Тело</text>
+
+                            <path class="part" data-part="tail" role="button" tabindex="0" aria-label="Хвост"
+                                  d="M620 165 Q650 160 670 175 Q685 190 685 210 Q680 230 660 240 Q640 245 620 235 Q605 220 605 200 Q605 180 620 165 Z"
+                                  fill="#fb923c"/>
+                            <text class="part-label-text" x="625" y="205" style="font-size:11px;">Хвост</text>
+
+                            <path d="M230 220 Q270 225 310 220 Q350 215 400 210 Q460 205 530 200 Q590 198 650 200" 
+                                  fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-dasharray="6 3" opacity="0.7"/>
+                            <text class="duct-label" x="380" y="195">Вирсунгов проток</text>
+
+                        </svg>
+                    </div>
+
+                    <div class="legend">
+                        <div class="legend-item"><span class="legend-color" style="background:#fcd34d;"></span> Головка</div>
+                        <div class="legend-item"><span class="legend-color" style="background:#f59e0b;"></span> Крючковидный отросток</div>
+                        <div class="legend-item"><span class="legend-color" style="background:#fda4af;"></span> Шейка</div>
+                        <div class="legend-item"><span class="legend-color" style="background:#86efac;"></span> Тело</div>
+                        <div class="legend-item"><span class="legend-color" style="background:#fb923c;"></span> Хвост</div>
+                        <div class="legend-item"><span class="legend-color" style="background:#f9a8b8;"></span> ДПК</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>📝 Описания патологий и протокол</span>
+                <span class="count" id="pathologyCount">Патологий: 0</span>
+            </div>
+            <div class="card-body">
+
+                <div class="protocol-section">
+                    <div class="protocol-section-title">🎯 Выбранные патологии и КТ-описания</div>
+                    <div id="selectedPathologiesContainer">
+                        <div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">
+                            Кликни на часть железы слева → выбери патологию из списка
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pattern-builder">
+                    <div class="pb-title">✨ Создать свой паттерн</div>
+                    <input type="text" id="patternName" placeholder="Название (например: 'Атипичная киста')" />
+                    <textarea id="patternDescription" placeholder="КТ-описание паттерна..."></textarea>
+                    <div class="pb-buttons">
+                        <button class="btn-save" onclick="saveCustomPattern()">💾 Сохранить паттерн</button>
+                        <button class="btn-clear" onclick="clearPatternForm()">Очистить</button>
+                    </div>
+                    <div class="custom-patterns-list" id="customPatternsList"></div>
+                </div>
+
+                <div class="protocol-section" style="margin-top: 20px;">
+                    <div class="protocol-section-title">📋 Итоговый протокол</div>
+                    <textarea class="final-protocol" id="finalProtocol" spellcheck="true" aria-label="Итоговый протокол">ПОДЖЕЛУДОЧНАЯ ЖЕЛЕЗА:
+  Не увеличена. Контуры ровные, чёткие.
+  Паренхима однородной структуры, плотность не снижена.
+  Вирсунгов проток не расширен (до 2 мм).
+  Перипанкреатическая клетчатка не изменена.
+
+[Очаговые изменения:]
+  — не выявлены.
+
+ЗАКЛЮЧЕНИЕ:
+  Патологических изменений поджелудочной железы не выявлено.</textarea>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Затемнённый оверлей -->
+    <div class="pathology-overlay" id="pathologyOverlay" onclick="closeDropdown()"></div>
+
+    <!-- Модалка выбора патологии -->
+    <div class="pathology-dropdown" id="pathologyDropdown">
+        <button class="close-dropdown" onclick="closeDropdown()">×</button>
+        <div class="dropdown-title" id="dropdownTitle">Выбери патологию</div>
+        <div id="dropdownItems"></div>
+    </div>
+
+    <div class="status-bar">
+        <span>💡 <span id="statusMessage">Кликни на часть железы → появится список патологий. Выбери нужную.</span></span>
+        <span>📌 <span id="statusCount">Частей: 0 | Патологий: 0</span></span>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const partNames = {
+                head: 'Головка',
+                uncinate: 'Крючковидный отросток',
+                neck: 'Шейка',
+                body: 'Тело',
+                tail: 'Хвост'
+            };
+
+            const defaultPathologies = [
+                {
+                    id: 'acute_pancreatitis',
+                    name: 'Острый панкреатит',
+                    color: '#ef4444',
+                    description: 'Диффузное или очаговое увеличение железы. Снижение плотности паренхимы (отёк). Нечёткие контуры, инфильтрация перипанкреатической клетчатки. Жидкостные скопления (острые перипанкреатические скопления). В тяжёлых случаях — участки некроза без накопления контраста. Возможны псевдокисты, абсцессы. Вирсунгов проток может быть расширен.'
+                },
+                {
+                    id: 'chronic_pancreatitis',
+                    name: 'Хронический панкреатит',
+                    color: '#f97316',
+                    description: 'Диффузная атрофия паренхимы, фиброзные изменения. Неровные, бугристые контуры. Диффузные или очаговые кальцинаты в паренхиме и протоке. Расширение Вирсунгова протока (>3 мм), неравномерное («чётки»). Возможны псевдокисты. Уплотнение перипанкреатической клетчатки.'
+                },
+                {
+                    id: 'adenocarcinoma',
+                    name: 'Аденокарцинома',
+                    color: '#dc2626',
+                    description: 'Гиподенсное образование с нечёткими контурами. Чаще в головке железы. В артериальную фазу — слабое накопление контраста (гиповаскулярная опухоль). В портально-венозную фазу — умеренное накопление. Инвазия в сосуды (воротная вена, ВВН, чревный ствол). Расширение Вирсунгова протока проксимальнее опухоли («двойной проток» — при раке головки). Дилатация холедоха. Метастазы в печень, лимфоузлы.'
+                },
+                {
+                    id: 'neo',
+                    name: 'НЭО (нейроэндокринная опухоль)',
+                    color: '#7c3aed',
+                    description: 'Чётко отграниченное гиперваскулярное образование. В артериальную фазу — интенсивное накопление контраста. В портально-венозную фазу — вымывание. Часто в теле или хвосте. Может быть кистозной дегенерацией. Характерны кальцинаты. Возможны метастазы в печень (гиперваскулярные). Инсулиномы — мелкие (<2 см), гастриномы — чаще в головке.'
+                },
+                {
+                    id: 'cyst',
+                    name: 'Киста',
+                    color: '#3b82f6',
+                    description: 'Округлое гиподенсное образование с чёткими контурами. Плотность 0–20 HU (жидкостная). Тонкая стенка, не накапливает контраст. Нет внутренних перегородок и пристеночных узлов (простая киста). При сложной кисте — перегородки, пристеночные узлы, накопление контраста. Возможны кальцинаты в стенке.'
+                },
+                {
+                    id: 'pseudocyst',
+                    name: 'Псевдокиста',
+                    color: '#06b6d4',
+                    description: 'Округлое или овальное жидкостное образование с чёткими контурами. Плотность 10–30 HU. Толстая фиброзная стенка, может накапливать контраст в отсроченную фазу. Часто множественные. Локализация — чаще в теле/хвосте. Связь с панкреатитом в анамнезе. Возможны кальцинаты в стенке. Нет эпителиальной выстилки (в отличие от истинных кист).'
+                },
+                {
+                    id: 'cystadenoma',
+                    name: 'Цистаденома',
+                    color: '#22c55e',
+                    description: 'Многокамерное кистозное образование с тонкими перегородками. Серозная цистаденома — «сотовая» структура, множественные мелкие кисты, центральный рубец с кальцинатом. Муцинозная цистаденома — макроцистозная, толстые перегородки, пристеночные узлы. Чаще в теле/хвосте у женщин. Риск малигнизации (муцинозная).'
+                },
+                {
+                    id: 'ipmn',
+                    name: 'IPMN (внутрипротоковая папиллярная муцинозная неоплазия)',
+                    color: '#84cc16',
+                    description: 'Кистозное расширение Вирсунгова протока или его ветвей. Главный проток — диффузное или сегментарное расширение >5 мм. Боковые ветви — кистозные образования, сообщающиеся с протоком. Пристеночные узлы, утолщение стенок. Риск малигнизации. КТ-панкреатография показывает сообщение с протоком.'
+                },
+                {
+                    id: 'metastasis',
+                    name: 'Метастаз',
+                    color: '#6b7280',
+                    description: 'Множественные (реже одиночные) гиподенсные очаги. Неровные контуры. В артериальную фазу — периферическое накопление контраста. Часто на фоне первичной опухоли (меланома, рак лёгкого, почки). Возможны кальцинаты. Лимфаденопатия.'
+                },
+                {
+                    id: 'necrosis',
+                    name: 'Некроз',
+                    color: '#991b1b',
+                    description: 'Участки паренхимы без накопления контраста во все фазы. Нечёткие границы. Перифокальный отёк, инфильтрация клетчатки. Жидкостные скопления, газ в некротических массах. Секвестрация некротических масс. Формирование псевдокист, абсцессов. Тяжёлое течение острого панкреатита.'
+                },
+                {
+                    id: 'norma',
+                    name: '✅ Норма',
+                    color: '#22c55e',
+                    description: 'Железа обычных размеров, контуры ровные, чёткие. Паренхима однородной структуры, плотность не снижена. Вирсунгов проток не расширен (до 2 мм). Перипанкреатическая клетчатка не изменена. Очаговых образований не выявлено. Сосуды (воротная вена, ВВН, чревный ствол) проходимы, без признаков инвазии.',
+                    isNorma: true
+                }
+            ];
+
+            const state = {
+                selectedParts: new Set(),
+                pathologies: {},
+                currentDropdownPart: null,
+                customPatterns: []
+            };
+
+            function loadCustomPatterns() {
+                try {
+                    const saved = localStorage.getItem('pancreas_custom_patterns');
+                    if (saved) state.customPatterns = JSON.parse(saved);
+                } catch (e) { console.error('Ошибка загрузки паттернов:', e); }
+            }
+
+            function saveCustomPatternsToStorage() {
+                try {
+                    localStorage.setItem('pancreas_custom_patterns', JSON.stringify(state.customPatterns));
+                } catch (e) { console.error('Ошибка сохранения паттернов:', e); }
+            }
+
+            const parts = document.querySelectorAll('.part');
+            const partsCount = document.getElementById('partsCount');
+            const pathologyCount = document.getElementById('pathologyCount');
+            const statusMessage = document.getElementById('statusMessage');
+            const statusCount = document.getElementById('statusCount');
+            const toast = document.getElementById('toast');
+            const dropdown = document.getElementById('pathologyDropdown');
+            const overlay = document.getElementById('pathologyOverlay');
+            const dropdownTitle = document.getElementById('dropdownTitle');
+            const dropdownItems = document.getElementById('dropdownItems');
+            const selectedPathologiesContainer = document.getElementById('selectedPathologiesContainer');
+            const finalProtocol = document.getElementById('finalProtocol');
+
+            function showToast(message) {
+                toast.textContent = message;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            }
+
+            function getAllPathologies() {
+                return [...defaultPathologies, ...state.customPatterns];
+            }
+
+            function openDropdown(partName, event) {
+                state.currentDropdownPart = partName;
+                dropdownTitle.textContent = `Патология для: ${partNames[partName]}`;
+                
+                let html = '';
+                getAllPathologies().forEach(p => {
+                    const isCustom = state.customPatterns.some(cp => cp.id === p.id);
+                    const className = p.isNorma ? 'dropdown-item norma' : (isCustom ? 'dropdown-item custom' : 'dropdown-item');
+                    html += `<div class="${className}" data-pathology-id="${p.id}" onclick="selectPathology('${p.id}')">
+                        <span class="color-dot" style="background:${p.color};"></span>
+                        <span>${p.name}</span>
+                    </div>`;
+                });
+                dropdownItems.innerHTML = html;
+
+                if (overlay) overlay.classList.add('show');
+                dropdown.classList.add('show');
+            }
+
+            window.closeDropdown = function() {
+                if (overlay) overlay.classList.remove('show');
+                dropdown.classList.remove('show');
+                state.currentDropdownPart = null;
+            };
+
+            window.selectPathology = function(pathologyId) {
+                const partName = state.currentDropdownPart;
+                if (!partName) return;
+
+                const pathology = getAllPathologies().find(p => p.id === pathologyId);
+                if (!pathology) return;
+
+                if (!state.pathologies[pathologyId]) {
+                    state.pathologies[pathologyId] = {
+                        pathology: pathology,
+                        parts: new Set(),
+                        description: pathology.description
+                    };
+                }
+                state.pathologies[pathologyId].parts.add(partName);
+                state.selectedParts.add(partName);
+
+                parts.forEach(p => {
+                    if (p.dataset.part === partName) {
+                        p.classList.add('selected');
+                        if (!pathology.isNorma) p.classList.add('pathology');
+                    }
+                });
+
+                closeDropdown();
+                updateUI();
+                showToast(`➕ ${pathology.name} → ${partNames[partName]}`);
+                statusMessage.textContent = `➕ Добавлена «${pathology.name}» в ${partNames[partName]}`;
+            };
+
+            parts.forEach(part => {
+                part.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const partName = this.dataset.part;
+                    if (!partName) return;
+                    openDropdown(partName, e);
+                });
+
+                part.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openDropdown(this.dataset.part, { target: this });
+                    }
+                });
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.pathology-dropdown') && !e.target.closest('.part')) {
+                    if (dropdown.classList.contains('show')) {
+                        closeDropdown();
+                    }
+                }
+            });
+
+            window.removePartFromPathology = function(pathologyId, partName) {
+                if (state.pathologies[pathologyId]) {
+                    state.pathologies[pathologyId].parts.delete(partName);
+                    state.selectedParts.delete(partName);
+                    
+                    if (state.pathologies[pathologyId].parts.size === 0) delete state.pathologies[pathologyId];
+                    
+                    let stillHasPathology = false;
+                    for (const pid in state.pathologies) {
+                        if (state.pathologies[pid].parts.has(partName)) { stillHasPathology = true; break; }
+                    }
+                    parts.forEach(p => {
+                        if (p.dataset.part === partName && !stillHasPathology) p.classList.remove('selected', 'pathology');
+                    });
+                    
+                    updateUI();
+                    showToast(`🗑 Удалён ${partNames[partName]}`);
+                }
+            };
+
+            window.removePathology = function(pathologyId) {
+                if (state.pathologies[pathologyId]) {
+                    const pts = Array.from(state.pathologies[pathologyId].parts);
+                    pts.forEach(p => state.selectedParts.delete(p));
+                    delete state.pathologies[pathologyId];
+                    
+                    parts.forEach(p => {
+                        if (pts.includes(p.dataset.part)) {
+                            let stillHas = false;
+                            for (const pid in state.pathologies) {
+                                if (state.pathologies[pid].parts.has(p.dataset.part)) { stillHas = true; break; }
+                            }
+                            if (!stillHas) p.classList.remove('selected', 'pathology');
+                        }
+                    });
+                    
+                    updateUI();
+                    showToast('🗑 Патология удалена');
+                }
+            };
+
+            window.updatePathologyDescription = function(pathologyId, newDesc) {
+                if (state.pathologies[pathologyId]) {
+                    state.pathologies[pathologyId].description = newDesc;
+                    updateFinalProtocol();
+                }
+            };
+
+            window.saveCustomPattern = function() {
+                const name = document.getElementById('patternName').value.trim();
+                const description = document.getElementById('patternDescription').value.trim();
+                
+                if (!name) { showToast('⚠️ Введи название паттерна'); return; }
+                if (!description) { showToast('⚠️ Введи описание паттерна'); return; }
+
+                state.customPatterns.push({
+                    id: 'custom_' + Date.now(),
+                    name: name,
+                    color: '#f59e0b',
+                    description: description,
+                    isCustom: true
+                });
+
+                saveCustomPatternsToStorage();
+                document.getElementById('patternName').value = '';
+                document.getElementById('patternDescription').value = '';
+                renderCustomPatterns();
+                showToast('✨ Паттерн сохранён!');
+            };
+
+            window.clearPatternForm = function() {
+                document.getElementById('patternName').value = '';
+                document.getElementById('patternDescription').value = '';
+            };
+
+            window.removeCustomPattern = function(patternId) {
+                state.customPatterns = state.customPatterns.filter(p => p.id !== patternId);
+                saveCustomPatternsToStorage();
+                renderCustomPatterns();
+                showToast('🗑 Паттерн удалён');
+            };
+
+            function renderCustomPatterns() {
+                const container = document.getElementById('customPatternsList');
+                if (state.customPatterns.length === 0) { container.innerHTML = ''; return; }
+                let html = '<div style="width:100%; font-size:0.75rem; color:#92400e; margin-bottom:4px; font-weight:600;">Сохранённые паттерны:</div>';
+                state.customPatterns.forEach(p => {
+                    html += `<span class="custom-pattern-tag">${p.name} <span class="remove-pattern" onclick="removeCustomPattern('${p.id}')">×</span></span>`;
+                });
+                container.innerHTML = html;
+            }
+
+            function updateUI() {
+                partsCount.textContent = `Выбрано: ${state.selectedParts.size}`;
+                let totalPath = Object.keys(state.pathologies).length;
+                pathologyCount.textContent = `Патологий: ${totalPath}`;
+                statusCount.textContent = `Частей: ${state.selectedParts.size} | Патологий: ${totalPath}`;
+
+                if (totalPath === 0) {
+                    selectedPathologiesContainer.innerHTML = '<div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Кликни на часть железы слева → выбери патологию из списка</div>';
+                } else {
+                    let html = '';
+                    for (const pid in state.pathologies) {
+                        const p = state.pathologies[pid];
+                        const pts = Array.from(p.parts).sort();
+                        const isNorma = p.pathology.isNorma;
+                        
+                        html += `<div class="selected-pathology-card ${isNorma ? 'norma-card' : ''}">
+                            <div class="sp-header">
+                                <div class="sp-title">
+                                    <span class="color-dot" style="background:${p.pathology.color}; width:12px; height:12px; border-radius:50%; display:inline-block;"></span>
+                                    ${p.pathology.name}
+                                </div>
+                                <button class="sp-remove" onclick="removePathology('${pid}')" title="Удалить патологию">×</button>
+                            </div>
+                            <div class="sp-parts">
+                                Части: ${pts.map(pt => `<span>${partNames[pt]}</span>`).join('')}
+                                <span style="margin-left:8px; cursor:pointer; color:var(--danger); font-size:0.7rem;" onclick="clearAllParts('${pid}')">[очистить все]</span>
+                            </div>
+                            <textarea class="ct-description" placeholder="КТ-описание..." oninput="updatePathologyDescription('${pid}', this.value)">${p.description}</textarea>
+                        </div>`;
+                    }
+                    selectedPathologiesContainer.innerHTML = html;
+                }
+
+                updateFinalProtocol();
+            }
+
+            window.clearAllParts = function(pathologyId) {
+                if (state.pathologies[pathologyId]) {
+                    const pts = Array.from(state.pathologies[pathologyId].parts);
+                    pts.forEach(pt => {
+                        state.selectedParts.delete(pt);
+                        let stillHas = false;
+                        for (const pid in state.pathologies) {
+                            if (state.pathologies[pid].parts.has(pt)) { stillHas = true; break; }
+                        }
+                        parts.forEach(p => {
+                            if (p.dataset.part === pt && !stillHas) p.classList.remove('selected', 'pathology');
+                        });
+                    });
+                    delete state.pathologies[pathologyId];
+                    updateUI();
+                    showToast('🗑 Все части очищены');
+                }
+            };
+
+            function updateFinalProtocol() {
+                let text = `ПОДЖЕЛУДОЧНАЯ ЖЕЛЕЗА:\n  Не увеличена. Контуры ровные, чёткие.\n  Паренхима однородной структуры, плотность не снижена.\n  Вирсунгов проток не расширен (до 2 мм).\n  Перипанкреатическая клетчатка не изменена.\n\n`;
+
+                const pathEntries = Object.entries(state.pathologies);
+                if (pathEntries.length === 0) {
+                    text += `[Очаговые изменения:]\n  — не выявлены.\n\n`;
+                    text += `ЗАКЛЮЧЕНИЕ:\n  Патологических изменений поджелудочной железы не выявлено.`;
+                } else {
+                    let hasNorma = false;
+                    let fociText = '';
+                    let conclusionParts = [];
+
+                    pathEntries.forEach(([pid, p]) => {
+                        const pts = Array.from(p.parts).sort().map(pt => partNames[pt]).join(', ');
+                        if (p.pathology.isNorma) {
+                            hasNorma = true;
+                            fociText += `  — ${pts}: ${p.description}\n`;
+                        } else {
+                            fociText += `  — ${pts} (${p.pathology.name}): ${p.description}\n`;
+                            conclusionParts.push(`${p.pathology.name} в ${pts}`);
+                        }
+                    });
+
+                    text += `[ОЧАГОВЫЕ ИЗМЕНЕНИЯ:]\n${fociText}\n`;
+                    text += `ЗАКЛЮЧЕНИЕ:\n`;
+                    if (conclusionParts.length > 0) {
+                        text += `  Выявлены: ${conclusionParts.join('; ')}. Рекомендовано дообследование (МРТ/КТ с контрастом, консультация онколога/хирурга).\n`;
+                    } else if (hasNorma) {
+                        text += `  Патологических изменений не выявлено.\n`;
+                    }
+                }
+
+                finalProtocol.value = text;
+            }
+
+            window.generateFinalProtocol = function() {
+                updateFinalProtocol();
+                showToast('📋 Итоговый протокол сформирован');
+                finalProtocol.focus();
+                finalProtocol.select();
+            };
+
+            window.copyToClipboard = function() {
+                finalProtocol.select();
+                document.execCommand('copy');
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(finalProtocol.value).then(() => {
+                        showToast('✅ Скопировано в буфер обмена!');
+                    }).catch(() => { showToast('⚠️ Не удалось скопировать'); });
+                } else {
+                    showToast('✅ Скопировано в буфер обмена!');
+                }
+            };
+
+            window.resetAll = function() {
+                if (!confirm('Очистить всё?')) return;
+                state.selectedParts.clear();
+                state.pathologies = {};
+                parts.forEach(p => p.classList.remove('selected', 'pathology'));
+                updateUI();
+                showToast('🔄 Всё сброшено');
+                statusMessage.textContent = '🔄 Всё сброшено';
+            };
+
+            loadCustomPatterns();
+            renderCustomPatterns();
+            updateUI();
+            statusMessage.textContent = '💡 Кликни на часть железы → появится список патологий. Выбери нужную.';
+
+            console.log('🫁 Поджелудочная железа — единый рисунок загружен!');
+        })();
+
+// ============================================================
+// ОТПРАВКА РЕЗУЛЬТАТА В РОДИТЕЛЬСКОЕ ОКНО (КТ-Журнал)
+// ============================================================
+function sendToParent() {
+    let text = '';
+
+    const finalEl = document.getElementById('finalProtocol');
+    if (finalEl) {
+        text = finalEl.value || finalEl.textContent || '';
+    }
+
+    const aspectEl = document.getElementById('protocol-text');
+    if (!text && aspectEl) {
+        text = aspectEl.textContent || '';
+    }
+
+    if (!text.trim()) {
+        alert('⚠️ Сначала сформируйте протокол (нажмите «📋 Итоговый протокол»)');
+        return;
+    }
+
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+            type: 'widget-result',
+            text: text
+        }, '*');
+    } else {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Протокол скопирован в буфер обмена');
+            }).catch(() => {
+                alert('⚠️ Не удалось скопировать');
+            });
+        } else {
+            alert('✅ Протокол готов: ' + text.substring(0, 100) + '...');
+        }
+    }
+}
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Желчевыводящая система — КТ диагностика</title>
+    <style>
+        :root {
+            --bg: #f0f4f8; --card: #ffffff; --border: #cbd5e1; --text: #0f172a;
+            --muted: #64748b; --primary: #0ea5e9; --success: #22c55e;
+            --danger: #ef4444; --warning: #f59e0b;
+            --shadow: 0 8px 30px rgba(0,0,0,0.12); --radius: 16px;
+            --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: var(--card); padding: 14px 24px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; }
+        .header h1 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .header .badge { background: var(--primary); color: #fff; padding: 4px 14px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; }
+        .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+        .toolbar button { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-weight: 500; font-size: 0.82rem; cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 6px; }
+        .toolbar button:hover { background: var(--border); transform: translateY(-2px); }
+        .toolbar .primary { background: var(--primary); color: #fff; border: none; }
+        .toolbar .primary:hover { background: #0284c7; }
+        .toolbar .success { background: var(--success); color: #fff; border: none; }
+        .toolbar .success:hover { background: #16a34a; }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
+        @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr; } }
+        .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+        .card-header { padding: 12px 20px; background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+        .card-header .count { font-weight: 400; font-size: 0.75rem; color: var(--muted); }
+        .card-body { padding: 16px 20px; flex: 1; overflow: auto; max-height: 800px; }
+        .diagrams-container { display: flex; flex-direction: column; gap: 16px; padding: 8px; background: #fafcff; border-radius: 12px; border: 1px solid var(--border); }
+        .diagram-section { background: #fff; border-radius: 10px; padding: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .diagram-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .diagram-title .badge { background: var(--primary); color: #fff; padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; }
+        .diagram-section svg { width: 100%; height: auto; display: block; }
+        .diagram-section svg .organ { cursor: pointer; transition: all 0.3s ease; stroke: #1e293b; stroke-width: 1.5; opacity: 0.95; }
+        .diagram-section svg .organ:hover { opacity: 1; filter: brightness(1.08) drop-shadow(0 0 6px rgba(14,165,233,0.3)); }
+        .diagram-section svg .organ.selected { stroke: #0284c7; stroke-width: 3; filter: drop-shadow(0 0 10px rgba(14,165,233,0.6)); opacity: 1; }
+        .diagram-section svg .organ.has-pathology { stroke: #dc2626; stroke-width: 3; filter: drop-shadow(0 0 14px rgba(239,68,68,0.7)); animation: patho-pulse 1.2s ease-in-out infinite; opacity: 1; }
+        @keyframes patho-pulse { 0%,100% { filter: drop-shadow(0 0 6px rgba(239,68,68,0.3)); } 50% { filter: drop-shadow(0 0 20px rgba(239,68,68,0.8)); } }
+        .diagram-section svg .organ-label { font-size: 11px; font-weight: 700; fill: #0f172a; pointer-events: none; user-select: none; }
+        .diagram-section svg .organ-label-small { font-size: 9px; font-weight: 600; fill: #475569; pointer-events: none; user-select: none; }
+        .add-pathology-panel { margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%); border: 2px dashed #7c3aed; border-radius: 10px; display: none; }
+        .add-pathology-panel.show { display: block; }
+        .add-pathology-panel .panel-title { font-size: 0.85rem; font-weight: 700; color: #5b21b6; margin-bottom: 8px; }
+        .add-pathology-panel .selected-list { font-size: 0.78rem; color: #4b5563; margin-bottom: 10px; line-height: 1.5; }
+        .add-pathology-panel .selected-list span { display: inline-block; background: #7c3aed; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin: 2px; }
+        .add-pathology-panel .panel-buttons { display: flex; gap: 8px; }
+        .add-pathology-panel button { flex: 1; padding: 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all var(--transition); }
+        .add-pathology-panel .btn-add { background: #7c3aed; color: #fff; }
+        .add-pathology-panel .btn-add:hover { background: #6d28d9; }
+        .add-pathology-panel .btn-clear { background: #fff; color: var(--text); border: 1px solid var(--border); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #fff; border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+        .modal-header h2 { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+        .modal-close { cursor: pointer; font-size: 1.5rem; color: var(--muted); background: none; border: none; padding: 4px 8px; border-radius: 6px; }
+        .modal-close:hover { background: var(--bg); color: var(--danger); }
+        .pathology-type-list { display: flex; flex-direction: column; gap: 8px; }
+        .pathology-type-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); transition: all 0.2s; }
+        .pathology-type-item:hover { background: #f1f5f9; border-color: var(--primary); }
+        .pathology-type-item .color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .param-form { margin-top: 12px; }
+        .param-form .form-group { margin-bottom: 12px; }
+        .param-form label { display: block; font-size: 0.8rem; font-weight: 600; color: #4b5563; margin-bottom: 4px; }
+        .param-form input, .param-form select, .param-form textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; background: #fff; font-family: inherit; }
+        .param-form input:focus, .param-form select:focus, .param-form textarea:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+        .param-form textarea { min-height: 80px; resize: vertical; }
+        .param-form .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .param-form .form-buttons { display: flex; gap: 8px; margin-top: 16px; }
+        .param-form .form-buttons button { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; }
+        .param-form .btn-save { background: #22c55e; color: #fff; }
+        .param-form .btn-save:hover { background: #16a34a; }
+        .param-form .btn-cancel { background: #fff; color: var(--text); border: 1px solid var(--border); }
+        .protocol-section { margin-bottom: 20px; }
+        .protocol-section-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .pathology-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+        .pathology-card.stone-card { border-left-color: #dc2626; }
+        .pathology-card.inflammation-card { border-left-color: #ef4444; }
+        .pathology-card.tumor-card { border-left-color: #7c3aed; }
+        .pathology-card.obstruction-card { border-left-color: #f97316; }
+        .pathology-card .pc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+        .pathology-card .pc-title { font-weight: 700; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; }
+        .pathology-card .pc-remove { cursor: pointer; color: var(--muted); font-size: 1.1rem; background: none; border: none; padding: 2px 6px; border-radius: 4px; }
+        .pathology-card .pc-remove:hover { background: var(--danger); color: #fff; }
+        .pathology-card .pc-organs { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; }
+        .pathology-card .pc-organs span { display: inline-block; background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin: 2px; }
+        .pathology-card .pc-params { font-size: 0.75rem; margin-bottom: 6px; }
+        .pathology-card .pc-params .param-tag { display: inline-block; padding: 3px 8px; border-radius: 6px; margin: 2px; font-weight: 600; }
+        .pathology-card .pc-params .param-tag.size { background: #e0f2fe; color: #0369a1; }
+        .pathology-card .pc-params .param-tag.density { background: #fef3c7; color: #92400e; }
+        .pathology-card .pc-desc { font-size: 0.82rem; color: var(--text); line-height: 1.5; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
+        .final-protocol { width: 100%; min-height: 220px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; line-height: 1.7; font-family: 'Segoe UI', monospace; background: #fafcff; color: var(--text); resize: vertical; margin-top: 12px; }
+        .final-protocol:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.15); }
+        .status-bar { margin-top: 24px; padding: 12px 20px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: #fff; padding: 12px 24px; border-radius: 10px; box-shadow: var(--shadow); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; z-index: 10001; font-size: 0.9rem; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        @media (max-width: 700px) { body { padding: 12px; } .header { flex-direction: column; align-items: stretch; } .toolbar { justify-content: stretch; } .toolbar button { flex: 1; justify-content: center; font-size: 0.7rem; padding: 6px 10px; } .card-body { max-height: 500px; padding: 12px; } }
+        @media print { .toolbar, .status-bar, .modal-overlay, .add-pathology-panel { display: none !important; } }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div>
+        <h1>🫁 <span>Желчевыводящая система</span></h1>
+        <span class="badge">КТ диагностика</span>
+    </div>
+    <div class="toolbar">
+        <button class="success" onclick="resetAll()">🔄 Сбросить</button>
+        <button class="primary" onclick="generateFinalProtocol()">📋 Итоговый протокол</button>
+        <button onclick="copyToClipboard()">📋 Копировать</button>
+        <button onclick="window.print()">🖨 Печать</button>
+        <button class="success" onclick="sendToParent()" style="background:linear-gradient(135deg,#22c55e,#16a34a);">📥 Вставить в КТ-Журнал</button>
+    </div>
+</header>
+
+<div class="main-grid">
+    <div class="card">
+        <div class="card-header">
+            <span>📍 Анатомия (кликни на структуру)</span>
+            <span class="count" id="organsCount">Выбрано: 0</span>
+        </div>
+        <div class="card-body">
+            <div class="diagrams-container">
+                <div class="diagram-section">
+                    <div class="diagram-title"><span class="badge">1</span><span>Желчный пузырь и протоки</span></div>
+                    <svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M100 80 Q150 60 250 70 Q350 80 400 120 Q420 150 410 200 Q400 250 350 280 Q300 300 250 290 Q200 280 150 250 Q100 220 90 170 Q85 130 100 80 Z" fill="#fef3c7" stroke="#1e293b" stroke-width="2" opacity="0.5"/>
+                        <text class="organ-label" x="220" y="180">Печень</text>
+                        <g id="intrahepatic_ducts">
+                            <path class="organ" data-organ="right_hepatic_duct" d="M320 150 Q340 140 360 150 Q365 160 360 170 Q350 175 340 170 Q325 165 320 150 Z" fill="#fbbf24" stroke="#1e293b" stroke-width="1.5"/>
+                            <text class="organ-label-small" x="325" y="165">Правый печ. проток</text>
+                            <path class="organ" data-organ="left_hepatic_duct" d="M240 150 Q260 140 280 150 Q285 160 280 170 Q270 175 260 170 Q245 165 240 150 Z" fill="#fbbf24" stroke="#1e293b" stroke-width="1.5"/>
+                            <text class="organ-label-small" x="235" y="165">Левый печ. проток</text>
+                            <path class="organ" data-organ="common_hepatic_duct" d="M280 170 Q300 180 300 200 Q300 220 295 235 Q290 245 280 245 Q270 245 265 235 Q260 220 260 200 Q260 180 280 170 Z" fill="#f59e0b" stroke="#1e293b" stroke-width="1.5"/>
+                            <text class="organ-label-small" x="265" y="215">Общий печ. проток</text>
+                        </g>
+                        <g id="gallbladder">
+                            <path class="organ" data-organ="gallbladder_body" d="M340 240 Q360 235 375 250 Q385 270 380 310 Q375 340 360 350 Q345 355 330 345 Q320 330 318 300 Q315 270 325 255 Q330 245 340 240 Z" fill="#86efac" stroke="#1e293b" stroke-width="2"/>
+                            <text class="organ-label" x="335" y="300">Желчный</text>
+                            <text class="organ-label" x="335" y="312">пузырь</text>
+                            <path class="organ" data-organ="gallbladder_neck" d="M340 240 Q350 235 355 230 Q360 225 355 220 Q350 218 345 222 Q342 228 340 240 Z" fill="#4ade80" stroke="#1e293b" stroke-width="1.5"/>
+                            <text class="organ-label-small" x="345" y="228">Шейка</text>
+                        </g>
+                        <path class="organ" data-organ="cystic_duct" d="M355 230 Q370 220 385 215 Q395 212 400 215 Q405 218 403 225 Q400 232 390 235 Q375 238 360 245 Q355 248 355 230 Z" fill="#fcd34d" stroke="#1e293b" stroke-width="1.5"/>
+                        <text class="organ-label-small" x="375" y="228">Пузырный проток</text>
+                        <path class="organ" data-organ="common_bile_duct" d="M280 245 Q300 255 320 260 Q340 265 355 265 Q365 265 370 270 Q373 278 368 285 Q360 290 345 290 Q320 290 295 280 Q275 270 270 260 Q268 252 275 248 Q278 246 280 245 Z" fill="#f97316" stroke="#1e293b" stroke-width="2"/>
+                        <text class="organ-label" x="295" y="275">Общий желчный проток</text>
+                        <path d="M200 320 Q250 315 320 320 Q380 325 420 335 Q440 340 445 350 Q448 360 440 365 Q430 370 400 372 Q350 375 300 370 Q250 365 210 350 Q195 342 193 332 Q192 325 200 320 Z" fill="#fca5a5" stroke="#1e293b" stroke-width="2" opacity="0.6"/>
+                        <text class="organ-label" x="280" y="355">Поджелудочная железа</text>
+                        <path d="M420 340 Q440 350 450 370 Q455 390 450 410 Q445 425 430 430 Q415 433 400 425 Q390 418 385 400 Q382 385 388 370 Q395 355 410 348 Q415 345 420 340 Z" fill="#e5e7eb" stroke="#1e293b" stroke-width="2" opacity="0.5"/>
+                        <text class="organ-label-small" x="405" y="390">12-перстная кишка</text>
+                        <rect x="480" y="80" width="14" height="14" fill="#fbbf24" rx="2"/><text x="500" y="91" font-size="9" fill="#64748b">Внутрипеченочные протоки</text>
+                        <rect x="480" y="100" width="14" height="14" fill="#f59e0b" rx="2"/><text x="500" y="111" font-size="9" fill="#64748b">Общий печеночный проток</text>
+                        <rect x="480" y="120" width="14" height="14" fill="#fcd34d" rx="2"/><text x="500" y="131" font-size="9" fill="#64748b">Пузырный проток</text>
+                        <rect x="480" y="140" width="14" height="14" fill="#f97316" rx="2"/><text x="500" y="151" font-size="9" fill="#64748b">Общий желчный проток</text>
+                        <rect x="480" y="160" width="14" height="14" fill="#86efac" rx="2"/><text x="500" y="171" font-size="9" fill="#64748b">Желчный пузырь</text>
+                    </svg>
+                </div>
+                <div class="add-pathology-panel" id="addPanel">
+                    <div class="panel-title">🎯 Выбранные структуры:</div>
+                    <div class="selected-list" id="selectedList"></div>
+                    <div class="panel-buttons">
+                        <button class="btn-add" onclick="openPathologyTypeModal()">➕ Добавить патологию</button>
+                        <button class="btn-clear" onclick="clearSelection()">Очистить выбор</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span>📝 Описания патологий и протокол</span>
+            <span class="count" id="pathologyCount">Патологий: 0</span>
+        </div>
+        <div class="card-body">
+            <div class="protocol-section">
+                <div class="protocol-section-title">🎯 Добавленные патологии</div>
+                <div id="pathologiesContainer">
+                    <div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Выбери структуры слева и нажми "Добавить патологию"</div>
+                </div>
+            </div>
+            <div class="protocol-section" style="margin-top: 20px;">
+                <div class="protocol-section-title">📋 Итоговый протокол</div>
+                <textarea class="final-protocol" id="finalProtocol">ЖЕЛЧНЫЙ ПУЗЫРЬ:
+  Желчный пузырь обычной формы и размеров, не увеличен.
+  Стенка не утолщена, однородная.
+  Просвет свободен, конкременты не выявлены.
+
+ВНЕПЕЧЕНОЧНЫЕ ЖЕЛЧНЫЕ ПРОТОКИ:
+  Общий печеночный проток не расширен.
+  Общий желчный проток не расширен.
+  Пузырный проток проходим.
+
+ВНУТРИПЕЧЕНОЧНЫЕ ПРОТОКИ:
+  Внутрипеченочные желчные протоки не расширены.
+
+ЗАКЛЮЧЕНИЕ:
+  Патологических изменений желчевыводящей системы не выявлено.</textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="typeModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Выбери тип патологии</h2>
+            <button class="modal-close" onclick="closeTypeModal()">×</button>
+        </div>
+        <div class="pathology-type-list" id="typeList"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="paramModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="paramModalTitle">Параметры</h2>
+            <button class="modal-close" onclick="closeParamModal()">×</button>
+        </div>
+        <div class="param-form" id="paramForm"></div>
+    </div>
+</div>
+
+<div class="status-bar">
+    <span>💡 <span id="statusMessage">Кликай на структуры для выбора</span></span>
+    <span>📌 <span id="statusCount">Структур: 0 | Патологий: 0</span></span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+    'use strict';
+
+    var organNames = {
+        gallbladder_body: 'желчный пузырь (тело)',
+        gallbladder_neck: 'желчный пузырь (шейка)',
+        cystic_duct: 'пузырный проток',
+        common_hepatic_duct: 'общий печеночный проток',
+        common_bile_duct: 'общий желчный проток',
+        right_hepatic_duct: 'правый печеночный проток',
+        left_hepatic_duct: 'левый печеночный проток'
+    };
+
+    var pathologyTypes = [
+        { id: 'stone', name: '🔴 Камень (конкремент)', color: '#dc2626', category: 'stone' },
+        { id: 'sludge', name: '🟡 Билиарный сладж', color: '#f59e0b', category: 'inflammation' },
+        { id: 'cholecystitis_acute', name: '🔥 Острый холецистит', color: '#ef4444', category: 'inflammation' },
+        { id: 'cholecystitis_chronic', name: '🔴 Хронический холецистит', color: '#ef4444', category: 'inflammation' },
+        { id: 'polyp', name: '🟣 Полип', color: '#7c3aed', category: 'tumor' },
+        { id: 'tumor', name: '🟣 Опухоль', color: '#7c3aed', category: 'tumor' },
+        { id: 'obstruction', name: '🟠 Обструкция протока', color: '#f97316', category: 'obstruction' },
+        { id: 'wall_thickening', name: '🔵 Утолщение стенки', color: '#3b82f6', category: 'inflammation' }
+    ];
+
+    var state = {
+        selectedOrgans: [],
+        pathologies: [],
+        currentTypeId: null
+    };
+
+    var organs = document.querySelectorAll('.organ');
+    var organsCount = document.getElementById('organsCount');
+    var pathologyCount = document.getElementById('pathologyCount');
+    var statusMessage = document.getElementById('statusMessage');
+    var statusCount = document.getElementById('statusCount');
+    var toast = document.getElementById('toast');
+    var addPanel = document.getElementById('addPanel');
+    var selectedList = document.getElementById('selectedList');
+    var pathologiesContainer = document.getElementById('pathologiesContainer');
+    var finalProtocol = document.getElementById('finalProtocol');
+    var typeModal = document.getElementById('typeModal');
+    var paramModal = document.getElementById('paramModal');
+
+    function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    }
+
+    function log(msg) {
+        console.log('[Желчь] ' + msg);
+    }
+
+    organs.forEach(function(organ) {
+        organ.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var organId = this.getAttribute('data-organ');
+            if (!organId) return;
+            var idx = state.selectedOrgans.indexOf(organId);
+            if (idx >= 0) {
+                state.selectedOrgans.splice(idx, 1);
+                this.classList.remove('selected');
+            } else {
+                state.selectedOrgans.push(organId);
+                this.classList.add('selected');
+            }
+            updateSelectionUI();
+        });
+    });
+
+    function updateSelectionUI() {
+        organsCount.textContent = 'Выбрано: ' + state.selectedOrgans.length;
+        statusCount.textContent = 'Структур: ' + state.selectedOrgans.length + ' | Патологий: ' + state.pathologies.length;
+        if (state.selectedOrgans.length > 0) {
+            addPanel.classList.add('show');
+            var html = '';
+            for (var i = 0; i < state.selectedOrgans.length; i++) {
+                html += '<span>' + organNames[state.selectedOrgans[i]] + '</span>';
+            }
+            selectedList.innerHTML = html;
+        } else {
+            addPanel.classList.remove('show');
+        }
+    }
+
+    window.clearSelection = function() {
+        for (var i = 0; i < state.selectedOrgans.length; i++) {
+            var oid = state.selectedOrgans[i];
+            for (var j = 0; j < organs.length; j++) {
+                if (organs[j].getAttribute('data-organ') === oid) {
+                    organs[j].classList.remove('selected');
+                }
+            }
+        }
+        state.selectedOrgans = [];
+        updateSelectionUI();
+    };
+
+    window.openPathologyTypeModal = function() {
+        if (state.selectedOrgans.length === 0) {
+            showToast('⚠️ Сначала выбери структуры');
+            return;
+        }
+        var typeList = document.getElementById('typeList');
+        typeList.innerHTML = '';
+        for (var i = 0; i < pathologyTypes.length; i++) {
+            var type = pathologyTypes[i];
+            var item = document.createElement('div');
+            item.className = 'pathology-type-item';
+            item.innerHTML = '<span class="color-dot" style="background:' + type.color + ';"></span><span>' + type.name + '</span>';
+            (function(t) {
+                item.addEventListener('click', function() {
+                    closeTypeModal();
+                    openParamModal(t.id);
+                });
+            })(type);
+            typeList.appendChild(item);
+        }
+        typeModal.classList.add('show');
+    };
+
+    window.closeTypeModal = function() {
+        typeModal.classList.remove('show');
+    };
+
+    function getVal(id) {
+        var el = document.getElementById(id);
+        return el ? el.value : '';
+    }
+    function getNum(id) {
+        var v = getVal(id);
+        return v === '' ? NaN : parseFloat(v);
+    }
+    function getInt(id) {
+        var v = getVal(id);
+        return v === '' ? NaN : parseInt(v, 10);
+    }
+
+    function openParamModal(typeId) {
+        state.currentTypeId = typeId;
+        var type = null;
+        for (var i = 0; i < pathologyTypes.length; i++) {
+            if (pathologyTypes[i].id === typeId) { type = pathologyTypes[i]; break; }
+        }
+        document.getElementById('paramModalTitle').textContent = 'Параметры: ' + type.name;
+        var form = document.getElementById('paramForm');
+        var html = '';
+
+        if (typeId === 'stone') {
+            html += '<div class="form-group"><label>Количество:</label><input type="number" id="paramCount" placeholder="Введите число" min="1" step="1"/></div>';
+            html += '<div class="form-group"><label>Размеры (мм):</label><div class="form-row"><input type="number" id="paramSize1" placeholder="Длина" step="1"/><input type="number" id="paramSize2" placeholder="Ширина" step="1"/></div></div>';
+            html += '<div class="form-group"><label>Плотность (HU):</label><input type="number" id="paramDensity" placeholder="например, 800" step="10"/><div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Кальцинированные: >500 HU, холестериновые: <100 HU</div></div>';
+            html += '<div class="form-group"><label>Локализация:</label><select id="paramLocation"><option value="gallbladder">В желчном пузыре</option><option value="cystic_duct">В пузырном протоке</option><option value="common_bile_duct">В общем желчном протоке</option><option value="hepatic_duct">В печеночном протоке</option></select></div>';
+        } else if (typeId === 'sludge') {
+            html += '<div class="form-group"><label>Характеристика:</label><select id="paramSludgeType"><option value="однородная">Однородная взвесь</option><option value="неоднородная">Неоднородная взвесь</option><option value="слоистая">Слоистая</option></select></div>';
+            html += '<div class="form-group"><label>Объем заполнения (%):</label><input type="number" id="paramPercent" placeholder="например, 30" min="1" max="100" step="5"/></div>';
+        } else if (typeId === 'cholecystitis_acute' || typeId === 'cholecystitis_chronic') {
+            html += '<div class="form-group"><label>Толщина стенки (мм):</label><input type="number" id="paramWallThickness" placeholder="например, 5" step="0.5" min="1"/></div>';
+            html += '<div class="form-group"><label>Дополнительные признаки (Ctrl+клик для нескольких):</label><select id="paramSigns" multiple style="min-height:80px;"><option value="отёк стенки">Отёк стенки</option><option value="двухконтурность">Двухконтурность</option><option value="жидкость вокруг пузыря">Жидкость вокруг пузыря</option><option value="газ в просвете/стенке">Газ в просвете/стенке</option><option value="перфорация">Перфорация</option></select></div>';
+        } else if (typeId === 'polyp' || typeId === 'tumor') {
+            html += '<div class="form-group"><label>Размеры (мм):</label><div class="form-row"><input type="number" id="paramSize1" placeholder="Длина" step="1"/><input type="number" id="paramSize2" placeholder="Ширина" step="1"/></div></div>';
+            html += '<div class="form-group"><label>Тип:</label><select id="paramTumorType">';
+            if (typeId === 'polyp') {
+                html += '<option value="холестериновый полип">Холестериновый полип</option><option value="воспалительный полип">Воспалительный полип</option><option value="аденома">Аденома</option>';
+            } else {
+                html += '<option value="аденокарцинома">Аденокарцинома</option><option value="метастаз">Метастаз</option><option value="другое">Другое</option>';
+            }
+            html += '</select></div>';
+        } else if (typeId === 'obstruction') {
+            html += '<div class="form-group"><label>Причина обструкции:</label><select id="paramObstructionCause"><option value="камень (холедохолитиаз)">Камень</option><option value="опухоль">Опухоль</option><option value="стриктура">Стриктура</option><option value="компрессия извне">Компрессия извне</option></select></div>';
+            html += '<div class="form-group"><label>Уровень обструкции:</label><select id="paramObstructionLevel"><option value="проксимальный">Проксимальный (верхний)</option><option value="средний">Средний отдел</option><option value="дистальный">Дистальный (нижний)</option></select></div>';
+            html += '<div class="form-group"><label>Расширение протоков выше:</label><select id="paramDilation"><option value="нет">Нет</option><option value="умеренное">Умеренное</option><option value="выраженное">Выраженное</option></select></div>';
+        } else if (typeId === 'wall_thickening') {
+            html += '<div class="form-group"><label>Толщина стенки (мм):</label><input type="number" id="paramWallThickness" placeholder="например, 4" step="0.5" min="1"/></div>';
+            html += '<div class="form-group"><label>Характер утолщения:</label><select id="paramThickeningType"><option value="диффузное">Диффузное</option><option value="очаговое">Очаговое</option><option value="неравномерное">Неравномерное</option></select></div>';
+        }
+        html += '<div class="form-group"><label>Дополнительное описание:</label><textarea id="paramExtra" placeholder="Дополнительные детали..."></textarea></div>';
+        html += '<div class="form-buttons"><button class="btn-save" onclick="savePathology()">✅ Сохранить</button><button class="btn-cancel" onclick="closeParamModal()">Отмена</button></div>';
+        form.innerHTML = html;
+        paramModal.classList.add('show');
+    }
+
+    window.closeParamModal = function() {
+        paramModal.classList.remove('show');
+        state.currentTypeId = null;
+    };
+
+    window.savePathology = function() {
+        var typeId = state.currentTypeId;
+        var type = null;
+        for (var i = 0; i < pathologyTypes.length; i++) {
+            if (pathologyTypes[i].id === typeId) { type = pathologyTypes[i]; break; }
+        }
+        var selected = state.selectedOrgans.slice();
+        if (selected.length === 0) {
+            showToast('⚠️ Нет выбранных структур');
+            return;
+        }
+
+        var params = {};
+        log('Сохраняем патологию типа: ' + typeId);
+
+        if (typeId === 'stone') {
+            params.count = getInt('paramCount');
+            params.size1 = getNum('paramSize1');
+            params.size2 = getNum('paramSize2');
+            params.density = getInt('paramDensity');
+            params.location = getVal('paramLocation');
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.count) || params.count < 1) { showToast('⚠️ Укажи количество'); return; }
+            if (isNaN(params.size1) || isNaN(params.size2)) { showToast('⚠️ Укажи размеры'); return; }
+        } else if (typeId === 'sludge') {
+            params.sludgeType = getVal('paramSludgeType');
+            params.percent = getInt('paramPercent');
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.percent)) { showToast('⚠️ Укажи объем'); return; }
+        } else if (typeId === 'cholecystitis_acute' || typeId === 'cholecystitis_chronic') {
+            params.wallThickness = getNum('paramWallThickness');
+            var signsEl = document.getElementById('paramSigns');
+            params.signs = [];
+            if (signsEl) {
+                for (var i = 0; i < signsEl.options.length; i++) {
+                    if (signsEl.options[i].selected) params.signs.push(signsEl.options[i].value);
+                }
+            }
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.wallThickness)) { showToast('⚠️ Укажи толщину стенки'); return; }
+        } else if (typeId === 'polyp' || typeId === 'tumor') {
+            params.size1 = getNum('paramSize1');
+            params.size2 = getNum('paramSize2');
+            params.tumorType = getVal('paramTumorType');
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.size1) || isNaN(params.size2)) { showToast('⚠️ Укажи размеры'); return; }
+        } else if (typeId === 'obstruction') {
+            params.cause = getVal('paramObstructionCause');
+            params.level = getVal('paramObstructionLevel');
+            params.dilation = getVal('paramDilation');
+            params.extra = getVal('paramExtra');
+        } else if (typeId === 'wall_thickening') {
+            params.wallThickness = getNum('paramWallThickness');
+            params.thickeningType = getVal('paramThickeningType');
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.wallThickness)) { showToast('⚠️ Укажи толщину стенки'); return; }
+        }
+
+        var pathology = {
+            id: 'path_' + Date.now(),
+            type: type,
+            organs: selected,
+            params: params
+        };
+
+        state.pathologies.push(pathology);
+        log('Добавлено патологий: ' + state.pathologies.length);
+
+        for (var i = 0; i < selected.length; i++) {
+            var oid = selected[i];
+            for (var j = 0; j < organs.length; j++) {
+                if (organs[j].getAttribute('data-organ') === oid) {
+                    organs[j].classList.add('has-pathology');
+                }
+            }
+        }
+
+        clearSelection();
+        closeParamModal();
+        updatePathologiesUI();
+        updateFinalProtocol();
+        showToast('✅ Патология добавлена: ' + type.name);
+    };
+
+    function updatePathologiesUI() {
+        pathologyCount.textContent = 'Патологий: ' + state.pathologies.length;
+        statusCount.textContent = 'Структур: ' + state.selectedOrgans.length + ' | Патологий: ' + state.pathologies.length;
+
+        if (state.pathologies.length === 0) {
+            pathologiesContainer.innerHTML = '<div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Выбери структуры слева и нажми "Добавить патологию"</div>';
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < state.pathologies.length; i++) {
+            var p = state.pathologies[i];
+            var params = p.params || {};
+            html += '<div class="pathology-card ' + p.type.category + '-card">';
+            html += '<div class="pc-header"><div class="pc-title"><span class="color-dot" style="background:' + p.type.color + '; width:12px; height:12px; border-radius:50%; display:inline-block;"></span>' + p.type.name + '</div>';
+            html += '<button class="pc-remove" onclick="removePathology(' + i + ')" title="Удалить">×</button></div>';
+            html += '<div class="pc-organs">';
+            for (var j = 0; j < p.organs.length; j++) {
+                html += '<span>' + organNames[p.organs[j]] + '</span>';
+            }
+            html += '</div>';
+            html += '<div class="pc-params">';
+
+            if (p.type.id === 'stone') {
+                html += '<span class="param-tag size">📏 ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм</span>';
+                html += '<span class="param-tag density">🔢 ' + (params.density || 0) + ' HU</span>';
+                if (params.count > 1) html += '<span class="param-tag">🔢 ' + params.count + ' шт</span>';
+            } else if (p.type.id === 'sludge') {
+                html += '<span class="param-tag">📊 ' + (params.percent || 0) + '% заполнения</span>';
+            } else if (p.type.id === 'cholecystitis_acute' || p.type.id === 'cholecystitis_chronic') {
+                html += '<span class="param-tag size">📏 Стенка ' + (params.wallThickness || 0) + ' мм</span>';
+                if (params.signs && params.signs.length > 0) html += '<span class="param-tag">🔍 ' + params.signs.join(', ') + '</span>';
+            } else if (p.type.id === 'polyp' || p.type.id === 'tumor') {
+                html += '<span class="param-tag size">📏 ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм</span>';
+            } else if (p.type.id === 'obstruction') {
+                html += '<span class="param-tag">🔍 Причина: ' + (params.cause || 'неизвестно') + '</span>';
+                html += '<span class="param-tag">📐 Уровень: ' + (params.level || 'неизвестно') + '</span>';
+            } else if (p.type.id === 'wall_thickening') {
+                html += '<span class="param-tag size">📏 Стенка ' + (params.wallThickness || 0) + ' мм</span>';
+                html += '<span class="param-tag">🔍 ' + (params.thickeningType || 'неизвестно') + '</span>';
+            }
+            html += '</div>';
+            html += '<div class="pc-desc">' + generateDescription(p) + '</div>';
+            html += '</div>';
+        }
+        pathologiesContainer.innerHTML = html;
+    }
+
+    function generateDescription(p) {
+        if (!p || !p.params) return 'Описание недоступно';
+        var params = p.params;
+        var desc = '';
+
+        if (p.type.id === 'stone') {
+            var density = params.density || 0;
+            var stoneType = 'смешанный';
+            if (density < 100) stoneType = 'холестериновый (низкой плотности)';
+            else if (density < 500) stoneType = 'смешанный';
+            else stoneType = 'кальцинированный';
+            var count = params.count || 1;
+            var word = count === 1 ? 'конкремент' : (count < 5 ? 'конкремента' : 'конкрементов');
+            desc = count + ' ' + word + ' размерами ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм, плотность ' + density + ' HU (' + stoneType + ').';
+        } else if (p.type.id === 'sludge') {
+            desc = 'Билиарный сладж — ' + (params.sludgeType || 'неоднородная') + ' взвесь в просвете, заполняет около ' + (params.percent || 0) + '% объема.';
+        } else if (p.type.id === 'cholecystitis_acute') {
+            desc = 'Острый холецистит: стенка утолщена до ' + (params.wallThickness || 0) + ' мм.';
+            if (params.signs && params.signs.length > 0) {
+                desc += ' Дополнительные признаки: ' + params.signs.join(', ') + '.';
+            }
+        } else if (p.type.id === 'cholecystitis_chronic') {
+            desc = 'Хронический холецистит: стенка утолщена до ' + (params.wallThickness || 0) + ' мм, возможна деформация.';
+        } else if (p.type.id === 'polyp' || p.type.id === 'tumor') {
+            var label = p.type.id === 'polyp' ? 'Полип' : 'Объёмное образование';
+            desc = label + ' размерами ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм (' + (params.tumorType || 'неизвестный тип') + ').';
+        } else if (p.type.id === 'obstruction') {
+            desc = 'Обструкция протока на ' + (params.level || 'неизвестном') + ' уровне, причина: ' + (params.cause || 'неизвестна') + '.';
+            if (params.dilation && params.dilation !== 'нет') {
+                desc += ' Выше уровня обструкции определяется ' + params.dilation + ' расширение протоков.';
+            }
+        } else if (p.type.id === 'wall_thickening') {
+            desc = 'Утолщение стенки до ' + (params.wallThickness || 0) + ' мм (' + (params.thickeningType || 'неизвестный характер') + ').';
+        } else {
+            desc = 'Патология: ' + p.type.name + '.';
+        }
+
+        if (params.extra) {
+            desc += ' ' + params.extra;
+        }
+        return desc;
+    }
+
+    function updateFinalProtocol() {
+        log('updateFinalProtocol вызван. Патологий: ' + state.pathologies.length);
+        try {
+            var text = '';
+            var gb = [];
+            var cd = [];
+            var hd = [];
+            var cbd = [];
+
+            for (var i = 0; i < state.pathologies.length; i++) {
+                var p = state.pathologies[i];
+                if (!p || !p.organs) continue;
+                for (var j = 0; j < p.organs.length; j++) {
+                    var organId = p.organs[j];
+                    var entry = { organId: organId, organName: organNames[organId], pathology: p };
+                    if (organId.indexOf('gallbladder') >= 0) gb.push(entry);
+                    else if (organId === 'cystic_duct') cd.push(entry);
+                    else if (organId.indexOf('hepatic_duct') >= 0) hd.push(entry);
+                    else if (organId === 'common_bile_duct') cbd.push(entry);
+                }
+            }
+
+            text += 'ЖЕЛЧНЫЙ ПУЗЫРЬ:\n';
+            if (gb.length === 0) {
+                text += '  Желчный пузырь обычной формы и размеров, не увеличен.\n';
+                text += '  Стенка не утолщена, однородная.\n';
+                text += '  Просвет свободен, конкременты не выявлены.\n\n';
+            } else {
+                for (var i = 0; i < gb.length; i++) {
+                    text += '  ' + generateDescription(gb[i].pathology) + '\n';
+                }
+                text += '\n';
+            }
+
+            text += 'ВНЕПЕЧЕНОЧНЫЕ ЖЕЛЧНЫЕ ПРОТОКИ:\n';
+            if (cd.length === 0 && cbd.length === 0) {
+                text += '  Общий печеночный проток не расширен.\n';
+                text += '  Общий желчный проток не расширен.\n';
+                text += '  Пузырный проток проходим.\n\n';
+            } else {
+                if (cd.length > 0) {
+                    for (var i = 0; i < cd.length; i++) {
+                        text += '  Пузырный проток: ' + generateDescription(cd[i].pathology) + '\n';
+                    }
+                }
+                if (cbd.length > 0) {
+                    for (var i = 0; i < cbd.length; i++) {
+                        text += '  Общий желчный проток: ' + generateDescription(cbd[i].pathology) + '\n';
+                    }
+                }
+                text += '\n';
+            }
+
+            text += 'ВНУТРИПЕЧЕНОЧНЫЕ ПРОТОКИ:\n';
+            if (hd.length === 0) {
+                text += '  Внутрипеченочные желчные протоки не расширены.\n\n';
+            } else {
+                for (var i = 0; i < hd.length; i++) {
+                    text += '  ' + hd[i].organName + ': ' + generateDescription(hd[i].pathology) + '\n';
+                }
+                text += '\n';
+            }
+
+            text += 'ЗАКЛЮЧЕНИЕ:\n';
+            if (state.pathologies.length === 0) {
+                text += '  Патологических изменений желчевыводящей системы не выявлено.\n';
+            } else {
+                var conclusions = [];
+                for (var i = 0; i < state.pathologies.length; i++) {
+                    var p = state.pathologies[i];
+                    var organsStr = '';
+                    for (var j = 0; j < p.organs.length; j++) {
+                        if (j > 0) organsStr += ', ';
+                        organsStr += organNames[p.organs[j]];
+                    }
+                    conclusions.push(p.type.name + ' (' + organsStr + '): ' + generateDescription(p));
+                }
+                text += '  ' + conclusions.join('; ') + '.\n';
+                text += '  Рекомендовано: консультация хирурга/гастроэнтеролога.\n';
+            }
+
+            finalProtocol.value = text;
+            log('Протокол успешно обновлен');
+        } catch (error) {
+            console.error('[Желчь] Ошибка в updateFinalProtocol:', error);
+            showToast('⚠️ Ошибка: ' + error.message);
+        }
+    }
+
+    window.removePathology = function(index) {
+        state.pathologies.splice(index, 1);
+        updatePathologiesUI();
+        updateFinalProtocol();
+        showToast('🗑 Патология удалена');
+    };
+
+    window.generateFinalProtocol = function() {
+        updateFinalProtocol();
+        showToast('📋 Протокол сформирован');
+        finalProtocol.focus();
+        finalProtocol.select();
+    };
+
+    window.copyToClipboard = function() {
+        finalProtocol.select();
+        document.execCommand('copy');
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(finalProtocol.value).then(function() {
+                showToast('✅ Скопировано!');
+            }).catch(function() {
+                showToast('✅ Скопировано!');
+            });
+        } else {
+            showToast('✅ Скопировано!');
+        }
+    };
+
+    window.resetAll = function() {
+        if (!confirm('Очистить всё?')) return;
+        state.selectedOrgans = [];
+        state.pathologies = [];
+        for (var i = 0; i < organs.length; i++) {
+            organs[i].classList.remove('selected', 'has-pathology');
+        }
+        updateSelectionUI();
+        updatePathologiesUI();
+        updateFinalProtocol();
+        showToast('🔄 Сброшено');
+    };
+
+    typeModal.addEventListener('click', function(e) {
+        if (e.target === typeModal) closeTypeModal();
+    });
+    paramModal.addEventListener('click', function(e) {
+        if (e.target === paramModal) closeParamModal();
+    });
+
+    updateSelectionUI();
+    updatePathologiesUI();
+    updateFinalProtocol();
+
+    log('Инициализация завершена');
+})();
+
+// ============================================================
+// ОТПРАВКА РЕЗУЛЬТАТА В РОДИТЕЛЬСКОЕ ОКНО (КТ-Журнал)
+// ============================================================
+function sendToParent() {
+    let text = '';
+
+    const finalEl = document.getElementById('finalProtocol');
+    if (finalEl) {
+        text = finalEl.value || finalEl.textContent || '';
+    }
+
+    const aspectEl = document.getElementById('protocol-text');
+    if (!text && aspectEl) {
+        text = aspectEl.textContent || '';
+    }
+
+    if (!text.trim()) {
+        alert('⚠️ Сначала сформируйте протокол (нажмите «📋 Итоговый протокол»)');
+        return;
+    }
+
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+            type: 'widget-result',
+            text: text
+        }, '*');
+    } else {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Протокол скопирован в буфер обмена');
+            }).catch(() => {
+                alert('⚠️ Не удалось скопировать');
+            });
+        } else {
+            alert('✅ Протокол готов: ' + text.substring(0, 100) + '...');
+        }
+    }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASPECTS-10 — Alberta Stroke Program Early CT Score</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1225 100%);
+  color: #e0e6ff;
+  min-height: 100vh;
+  padding: 20px;
+}
+.container { max-width: 1500px; margin: 0 auto; }
+h1 {
+  text-align: center;
+  font-size: 1.8em;
+  margin-bottom: 20px;
+  background: linear-gradient(90deg, #4facfe, #00f2fe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* MAIN LAYOUT */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) {
+  .main-layout { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: rgba(20, 25, 50, 0.9);
+  border: 2px solid #4facfe;
+  border-radius: 15px;
+  padding: 15px;
+}
+.panel-title {
+  color: #4facfe;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(79,172,254,0.3);
+}
+
+/* SCHEME PANEL */
+.scheme-container {
+  position: relative;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.scheme-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.aspects-region {
+  cursor: pointer;
+  transition: all 0.3s;
+  stroke: rgba(255,255,255,0.3);
+  stroke-width: 1.5;
+}
+.aspects-region:hover {
+  stroke: #fff;
+  stroke-width: 2.5;
+  filter: brightness(1.3);
+}
+.aspects-region.affected {
+  stroke: #ff4757;
+  stroke-width: 3;
+  animation: pulse-region 1.5s infinite;
+}
+@keyframes pulse-region {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.4); }
+}
+.region-label {
+  font-size: 13px;
+  font-weight: bold;
+  fill: #fff;
+  pointer-events: none;
+  text-anchor: middle;
+  text-shadow: 0 0 3px #000;
+}
+.slice-label {
+  font-size: 14px;
+  font-weight: bold;
+  fill: #4facfe;
+  text-anchor: middle;
+}
+
+/* MRI PANEL */
+.mri-container {
+  position: relative;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mri-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+.mri-placeholder {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+.mri-placeholder .icon { font-size: 4em; margin-bottom: 15px; }
+.mri-placeholder .title { color: #4facfe; font-size: 1.2em; margin-bottom: 10px; }
+.mri-placeholder .hint { color: #888; font-size: 0.9em; line-height: 1.6; }
+.mri-placeholder code {
+  background: rgba(79,172,254,0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #4facfe;
+  font-size: 0.85em;
+}
+
+/* MODE SELECTOR */
+.mode-selector {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+.mode-btn {
+  padding: 10px 20px;
+  background: rgba(50, 50, 80, 0.5);
+  border: 2px solid #555;
+  color: #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: all 0.3s;
+}
+.mode-btn.active {
+  border-color: #4facfe;
+  color: #4facfe;
+  background: rgba(79, 172, 254, 0.15);
+}
+
+/* ASPECTS SCORE */
+.score-panel {
+  background: rgba(20, 25, 50, 0.9);
+  border: 2px solid #4facfe;
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.score-display { text-align: center; }
+.score-value {
+  font-size: 3.5em;
+  font-weight: bold;
+  color: #2ed573;
+  text-shadow: 0 0 20px rgba(46,213,115,0.5);
+  line-height: 1;
+}
+.score-value.medium { color: #ffa502; text-shadow: 0 0 20px rgba(255,165,2,0.5); }
+.score-value.low { color: #ff4757; text-shadow: 0 0 20px rgba(255,71,87,0.5); }
+.score-label { color: #aaa; font-size: 0.9em; margin-top: 5px; }
+.score-interp {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+.interp-high { background: rgba(46,213,115,0.2); color: #2ed573; border: 1px solid #2ed573; }
+.interp-medium { background: rgba(255,165,2,0.2); color: #ffa502; border: 1px solid #ffa502; }
+.interp-low { background: rgba(255,71,87,0.2); color: #ff4757; border: 1px solid #ff4757; }
+
+/* LEGEND */
+.legend {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 15px 0;
+  font-size: 0.85em;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-color {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+/* SELECTED PANEL */
+.selected-panel {
+  background: rgba(20, 25, 50, 0.9);
+  border: 2px solid #2ed573;
+  border-radius: 15px;
+  padding: 15px;
+  margin: 15px 0;
+}
+.selected-panel h3 { color: #2ed573; margin-bottom: 10px; }
+.selected-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 30px; }
+.selected-tag {
+  padding: 5px 12px;
+  background: rgba(255, 71, 87, 0.2);
+  border: 1px solid #ff4757;
+  border-radius: 15px;
+  font-size: 0.85em;
+  color: #ff4757;
+}
+.selected-tag .remove { cursor: pointer; margin-left: 5px; font-weight: bold; }
+
+/* BUTTONS */
+.btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 15px 0;
+}
+.btn {
+  padding: 11px 22px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn-primary { background: #4facfe; color: #0a0e27; }
+.btn-danger { background: #ff4757; color: white; }
+.btn-success { background: #2ed573; color: #0a0e27; }
+
+/* Кнопка "Вставить в КТ-Журнал" */
+.btn-send {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  font-weight: 700;
+  padding: 12px 24px;
+  box-shadow: 0 4px 15px rgba(34,197,94,.4);
+}
+.btn-send:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(34,197,94,.6);
+}
+
+/* MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: #1a1f3a;
+  border: 2px solid #4facfe;
+  border-radius: 15px;
+  padding: 25px;
+  max-width: 500px;
+  width: 90%;
+}
+.modal h3 { color: #4facfe; margin-bottom: 15px; }
+.modal label { display: block; margin: 12px 0 5px; color: #aaa; }
+.modal select, .modal textarea {
+  width: 100%;
+  padding: 10px;
+  background: rgba(30, 35, 60, 0.8);
+  border: 1px solid #4facfe;
+  color: #e0e6ff;
+  border-radius: 8px;
+  font-size: 1em;
+}
+.modal-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+/* PROTOCOL */
+.protocol-box {
+  background: rgba(20, 25, 50, 0.9);
+  border: 2px solid #2ed573;
+  border-radius: 15px;
+  padding: 20px;
+  white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>ASPECTS-10 — Alberta Stroke Program Early CT Score</h1>
+
+  <!-- MODE SELECTOR -->
+  <div class="mode-selector">
+    <button class="mode-btn active" onclick="setMode('view', this)">👁 Просмотр</button>
+    <button class="mode-btn" onclick="setMode('aspects', this)">🎯 Режим ASPECTS</button>
+    <button class="mode-btn" onclick="setMode('pathology', this)">⚕️ Патология</button>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-color" style="background:#4a90d9;"></div> C — Caudate</div>
+    <div class="legend-item"><div class="legend-color" style="background:#2ed573;"></div> IC — Internal Capsule</div>
+    <div class="legend-item"><div class="legend-color" style="background:#ff4757;"></div> L — Lentiform</div>
+    <div class="legend-item"><div class="legend-color" style="background:#9b59b6;"></div> I — Insula</div>
+    <div class="legend-item"><div class="legend-color" style="background:#f39c12;"></div> M1</div>
+    <div class="legend-item"><div class="legend-color" style="background:#f1c40f;"></div> M2</div>
+    <div class="legend-item"><div class="legend-color" style="background:#1abc9c;"></div> M3</div>
+    <div class="legend-item"><div class="legend-color" style="background:#e74c8b;"></div> M4</div>
+    <div class="legend-item"><div class="legend-color" style="background:#8e44ad;"></div> M5</div>
+    <div class="legend-item"><div class="legend-color" style="background:#3498db;"></div> M6</div>
+  </div>
+
+  <!-- MAIN LAYOUT: Scheme + MRI -->
+  <div class="main-layout">
+    <!-- LEFT: Interactive ASPECTS Scheme -->
+    <div class="panel">
+      <div class="panel-title">🗺 Интерактивная схема ASPECTS (кликни на регион)</div>
+      <div class="scheme-container">
+        <svg class="scheme-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+          <rect width="900" height="500" fill="#0a0a15"/>
+
+          <!-- ===== LEFT SLICE: Basal Ganglia Level ===== -->
+          <text x="225" y="25" class="slice-label">Basal ganglia level</text>
+
+          <ellipse cx="225" cy="260" rx="200" ry="210" fill="#1a1a2e" stroke="#555" stroke-width="2"/>
+          <ellipse cx="225" cy="260" rx="185" ry="195" fill="#2d2d44" stroke="#444" stroke-width="1.5"/>
+          <line x1="225" y1="70" x2="225" y2="450" stroke="#111" stroke-width="2"/>
+
+          <path d="M 195 230 Q 205 220 215 230 Q 212 255 205 260 Q 198 255 195 230" fill="#0a0a15" stroke="#333" stroke-width="1"/>
+          <path d="M 255 230 Q 245 220 235 230 Q 238 255 245 260 Q 252 255 255 230" fill="#0a0a15" stroke="#333" stroke-width="1"/>
+
+          <path id="region-C" class="aspects-region" data-region="C"
+            d="M 195 215 Q 205 205 215 215 Q 213 235 205 240 Q 197 235 195 215 Z"
+            fill="#4a90d9" opacity="0.85"/>
+          <text x="205" y="230" class="region-label">C</text>
+
+          <path id="region-IC" class="aspects-region" data-region="IC"
+            d="M 215 220 L 225 225 L 222 250 L 212 245 Z"
+            fill="#2ed573" opacity="0.85"/>
+          <text x="218" y="238" class="region-label" font-size="10">IC</text>
+
+          <path id="region-L" class="aspects-region" data-region="L"
+            d="M 185 240 Q 200 228 215 235 Q 220 255 210 265 Q 195 260 185 240 Z"
+            fill="#ff4757" opacity="0.85"/>
+          <text x="202" y="252" class="region-label">L</text>
+
+          <path id="region-I" class="aspects-region" data-region="I"
+            d="M 170 230 Q 182 218 192 228 Q 195 250 187 260 Q 175 255 170 230 Z"
+            fill="#9b59b6" opacity="0.85"/>
+          <text x="182" y="245" class="region-label">I</text>
+
+          <path id="region-M1" class="aspects-region" data-region="M1"
+            d="M 225 100 Q 280 110 310 160 Q 320 200 305 230 Q 280 235 260 225 Q 240 200 225 100 Z"
+            fill="#f39c12" opacity="0.85"/>
+          <text x="275" y="170" class="region-label">M1</text>
+
+          <path id="region-M2" class="aspects-region" data-region="M2"
+            d="M 305 230 Q 320 200 310 160 Q 340 200 355 260 Q 360 310 340 340 Q 310 340 290 310 Q 280 270 305 230 Z"
+            fill="#f1c40f" opacity="0.85"/>
+          <text x="325" y="270" class="region-label">M2</text>
+
+          <path id="region-M3" class="aspects-region" data-region="M3"
+            d="M 290 310 Q 310 340 340 340 Q 355 370 340 400 Q 310 420 280 410 Q 260 380 270 350 Q 275 330 290 310 Z"
+            fill="#1abc9c" opacity="0.85"/>
+          <text x="310" y="370" class="region-label">M3</text>
+
+          <!-- ===== RIGHT SLICE: Corona Radiata Level ===== -->
+          <text x="675" y="25" class="slice-label">Corona radiata level</text>
+
+          <ellipse cx="675" cy="260" rx="200" ry="210" fill="#1a1a2e" stroke="#555" stroke-width="2"/>
+          <ellipse cx="675" cy="260" rx="185" ry="195" fill="#2d2d44" stroke="#444" stroke-width="1.5"/>
+          <line x1="675" y1="70" x2="675" y2="450" stroke="#111" stroke-width="2"/>
+
+          <path d="M 650 240 Q 660 230 670 240 Q 668 270 662 278 Q 654 272 650 240" fill="#0a0a15" stroke="#333" stroke-width="1"/>
+          <path d="M 700 240 Q 690 230 680 240 Q 682 270 688 278 Q 696 272 700 240" fill="#0a0a15" stroke="#333" stroke-width="1"/>
+
+          <path id="region-M4" class="aspects-region" data-region="M4"
+            d="M 675 90 Q 730 100 760 140 Q 770 180 755 210 Q 730 215 710 200 Q 690 170 675 90 Z"
+            fill="#e74c8b" opacity="0.85"/>
+          <text x="720" y="155" class="region-label">M4</text>
+
+          <path id="region-M5" class="aspects-region" data-region="M5"
+            d="M 755 210 Q 770 180 760 140 Q 790 180 805 240 Q 810 300 790 340 Q 760 345 740 320 Q 730 270 755 210 Z"
+            fill="#8e44ad" opacity="0.85"/>
+          <text x="775" y="260" class="region-label">M5</text>
+
+          <path id="region-M6" class="aspects-region" data-region="M6"
+            d="M 740 320 Q 760 345 790 340 Q 800 370 785 400 Q 755 420 725 410 Q 710 380 720 350 Q 725 335 740 320 Z"
+            fill="#3498db" opacity="0.85"/>
+          <text x="755" y="375" class="region-label">M6</text>
+
+          <text x="30" y="30" fill="#4facfe" font-size="12" font-weight="bold">A (anterior)</text>
+          <text x="380" y="30" fill="#4facfe" font-size="12" font-weight="bold">P</text>
+          <text x="30" y="490" fill="#4facfe" font-size="11">R (правая)</text>
+          <text x="170" y="490" fill="#4facfe" font-size="11">L (левая)</text>
+          <text x="480" y="490" fill="#4facfe" font-size="11">R</text>
+          <text x="620" y="490" fill="#4facfe" font-size="11">L</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- RIGHT: Real CT Image Container -->
+    <div class="panel">
+      <div class="panel-title">📷 Реальная КТ — для наглядности</div>
+      <div class="mri-container">
+        <img class="mri-image" id="real-ct-image" src="../img/aspects-ct.jpg" alt="ASPECTS CT"
+          onerror="this.style.display='none'; document.getElementById('mri-fallback').style.display='block';">
+        <div id="mri-fallback" class="mri-placeholder" style="display:none;">
+          <div class="icon">🖼️</div>
+          <div class="title">КТ изображение ASPECTS</div>
+          <div class="hint">
+            Положи файл <code>aspects-ct.jpg</code><br>
+            в папку <code>img/</code> проекта
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASPECTS SCORE -->
+  <div class="score-panel">
+    <div>
+      <h2 style="color:#4facfe;">🎯 Шкала ASPECTS-10</h2>
+      <p style="color:#aaa; font-size:0.9em;">Кликай на регионы схемы слева. Поражённые = −1 балл.</p>
+    </div>
+    <div class="score-display">
+      <div class="score-value" id="score-value">10</div>
+      <div class="score-label">из 10 баллов</div>
+    </div>
+    <div class="score-interp interp-high" id="score-interp">Норма / Минимальные изменения</div>
+  </div>
+
+  <!-- SELECTED REGIONS -->
+  <div class="selected-panel">
+    <h3>🎯 Поражённые регионы ASPECTS: <span id="affected-count">0</span></h3>
+    <div class="selected-list" id="selected-list">
+      <span style="color:#aaa; font-size:0.9em;">Кликни на регион схемы...</span>
+    </div>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="btn-row">
+    <button class="btn btn-success" onclick="openPathologyModal()">⚕️ Описать патологию</button>
+    <button class="btn btn-primary" onclick="showProtocol()">📋 Сформировать протокол</button>
+    <button class="btn btn-danger" onclick="resetAll()">🔄 Сбросить всё</button>
+    <button class="btn btn-send" onclick="sendToParent()">📥 Вставить в КТ-Журнал</button>
+  </div>
+
+  <!-- PROTOCOL -->
+  <div class="panel" id="protocol-panel" style="display:none;">
+    <div class="panel-title">📋 Итоговый протокол</div>
+    <div class="protocol-box" id="protocol-text">ГОЛОВНОЙ МОЗГ:
+  Паренхима мозга обычной плотности.
+  Дифференциация серого и белого вещества сохранена.
+  Боковые желудочки симметричны, не расширены.
+  Срединные структуры не смещены.
+
+[ASPECTS-10]: 10/10 баллов
+  Поражённые регионы: не выявлены.
+
+ЗАКЛЮЧЕНИЕ:
+  Признаков ишемии в бассейне СМА не выявлено.
+  ASPECTS 10/10 — минимальные изменения, благоприятный прогноз.</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="copyProtocol()">📋 Копировать</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨 Печать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pathology Modal -->
+<div class="modal-overlay" id="pathology-modal">
+  <div class="modal">
+    <h3>⚕️ Описание патологии</h3>
+    <p style="color:#aaa; margin-bottom:15px;" id="modal-info">Поражённые регионы: —</p>
+
+    <label>Тип патологии:</label>
+    <select id="path-type">
+      <option value="ischemia">Ишемия (гиподенсивность на КТ)</option>
+      <option value="hemorrhage">Геморрагия (гиперденсивность на КТ)</option>
+      <option value="edema">Отёк</option>
+      <option value="mass">Объёмное образование</option>
+      <option value="normal">Норма</option>
+    </select>
+
+    <label>Выраженность:</label>
+    <select id="path-severity">
+      <option value="mild">Лёгкая</option>
+      <option value="moderate">Умеренная</option>
+      <option value="severe">Выраженная</option>
+    </select>
+
+    <label>Комментарий:</label>
+    <textarea id="path-comment" rows="3" placeholder="Дополнительное описание..."></textarea>
+
+    <div class="modal-btns">
+      <button class="btn btn-danger" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-success" onclick="savePathology()">✅ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentMode = 'view';
+let affectedRegions = new Set();
+let pathologyData = null;
+
+const regionNames = {
+  'C': 'C — Caudate nucleus (хвостатое ядро)',
+  'IC': 'IC — Internal capsule (внутренняя капсула)',
+  'L': 'L — Lentiform nucleus (чечевицеобразное ядро)',
+  'I': 'I — Insular cortex (островковая кора)',
+  'M1': 'M1 — Anterior frontal cortex (передняя лобная кора)',
+  'M2': 'M2 — Lateral frontal cortex (латеральная лобная кора)',
+  'M3': 'M3 — Posterior temporal cortex (задняя височная кора)',
+  'M4': 'M4 — Anterior parietal cortex (передняя теменная кора)',
+  'M5': 'M5 — Lateral parietal cortex (латеральная теменная кора)',
+  'M6': 'M6 — Posterior parietal cortex (задняя теменная кора)'
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupRegions();
+});
+
+function setupRegions() {
+  document.querySelectorAll('.aspects-region').forEach(region => {
+    region.addEventListener('click', () => handleRegionClick(region));
+  });
+}
+
+function setMode(mode, btn) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function handleRegionClick(region) {
+  const id = region.dataset.region;
+
+  if (currentMode === 'view') {
+    alert(`📍 ${regionNames[id]}\n\nПереключись в режим "ASPECTS" или "Патология" для работы.`);
+    return;
+  }
+
+  if (currentMode === 'aspects' || currentMode === 'pathology') {
+    if (affectedRegions.has(id)) {
+      affectedRegions.delete(id);
+      region.classList.remove('affected');
+    } else {
+      affectedRegions.add(id);
+      region.classList.add('affected');
+    }
+    updateScore();
+    updateSelectedList();
+  }
+}
+
+function updateScore() {
+  const score = Math.max(0, 10 - affectedRegions.size);
+  const scoreEl = document.getElementById('score-value');
+  const interpEl = document.getElementById('score-interp');
+
+  scoreEl.textContent = score;
+  scoreEl.className = 'score-value';
+
+  if (score >= 8) {
+    interpEl.className = 'score-interp interp-high';
+    interpEl.textContent = 'Норма / Минимальные изменения — благоприятный прогноз';
+  } else if (score >= 6) {
+    scoreEl.classList.add('medium');
+    interpEl.className = 'score-interp interp-medium';
+    interpEl.textContent = 'Умеренный инфаркт — пограничная зона для тромбэктомии';
+  } else {
+    scoreEl.classList.add('low');
+    interpEl.className = 'score-interp interp-low';
+    interpEl.textContent = 'Обширный инфаркт — высокий риск геморрагической трансформации!';
+  }
+}
+
+function updateSelectedList() {
+  const list = document.getElementById('selected-list');
+  const count = document.getElementById('affected-count');
+  count.textContent = affectedRegions.size;
+
+  if (affectedRegions.size === 0) {
+    list.innerHTML = '<span style="color:#aaa; font-size:0.9em;">Кликни на регион схемы...</span>';
+    return;
+  }
+
+  list.innerHTML = '';
+  affectedRegions.forEach(id => {
+    const tag = document.createElement('div');
+    tag.className = 'selected-tag';
+    tag.innerHTML = `${regionNames[id]} <span class="remove" onclick="removeRegion('${id}')">✕</span>`;
+    list.appendChild(tag);
+  });
+}
+
+function removeRegion(id) {
+  affectedRegions.delete(id);
+  const region = document.getElementById('region-' + id);
+  if (region) region.classList.remove('affected');
+  updateScore();
+  updateSelectedList();
+}
+
+function openPathologyModal() {
+  if (affectedRegions.size === 0) {
+    alert('Сначала выбери поражённые регионы на схеме (режим ASPECTS)!');
+    return;
+  }
+  const names = Array.from(affectedRegions).map(id => regionNames[id]).join(', ');
+  document.getElementById('modal-info').textContent = names;
+  document.getElementById('pathology-modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('pathology-modal').classList.remove('show');
+}
+
+function savePathology() {
+  const type = document.getElementById('path-type').value;
+  const severity = document.getElementById('path-severity').value;
+  const comment = document.getElementById('path-comment').value;
+
+  pathologyData = { type, severity, comment, regions: [...affectedRegions] };
+
+  const typeNames = { ischemia: 'ишемия', hemorrhage: 'геморрагия', edema: 'отёк', mass: 'объёмное образование', normal: 'норма' };
+  const sevNames = { mild: 'лёгкая', moderate: 'умеренная', severe: 'выраженная' };
+
+  alert(`✅ Сохранено!\n\nПатология: ${typeNames[type]}\nВыраженность: ${sevNames[severity]}\nРегионов: ${affectedRegions.size}\n\nНажми "Сформировать протокол" для итогового заключения.`);
+
+  closeModal();
+  showProtocol();
+}
+
+function showProtocol() {
+  const score = Math.max(0, 10 - affectedRegions.size);
+  const typeNames = { ischemia: 'ишемия', hemorrhage: 'геморрагия', edema: 'отёк', mass: 'объёмное образование', normal: 'норма' };
+  const sevNames = { mild: 'лёгкая', moderate: 'умеренная', severe: 'выраженная' };
+
+  let protocol = 'ГОЛОВНОЙ МОЗГ:\n';
+  protocol += '  Паренхима мозга обычной плотности.\n';
+  protocol += '  Дифференциация серого и белого вещества сохранена.\n';
+  protocol += '  Боковые желудочки симметричны, не расширены.\n';
+  protocol += '  Срединные структуры не смещены.\n\n';
+
+  if (affectedRegions.size > 0) {
+    protocol += '[ASPECTS-10]:\n';
+    protocol += `  Выявлены признаки поражения в регионах: ${Array.from(affectedRegions).join(', ')}\n\n`;
+
+    if (pathologyData) {
+      protocol += `[Патология]:\n`;
+      protocol += `  Тип: ${typeNames[pathologyData.type]}\n`;
+      protocol += `  Выраженность: ${sevNames[pathologyData.severity]}\n`;
+      if (pathologyData.comment) protocol += `  Комментарий: ${pathologyData.comment}\n`;
+      protocol += '\n';
+    }
+
+    protocol += `[ASPECTS-10]: ${score}/10 баллов\n`;
+    if (score <= 5) {
+      protocol += '  ⚠️ Обширный инфаркт — высокий риск геморрагической трансформации!\n';
+      protocol += '  Тромбэктомия относительно противопоказана.\n';
+    } else if (score <= 7) {
+      protocol += '  ⚡ Умеренный инфаркт — пограничная зона.\n';
+      protocol += '  Рассмотреть тромбэктомию.\n';
+    } else {
+      protocol += '  ✓ Минимальные изменения — благоприятный прогноз.\n';
+      protocol += '  Показана тромбэктомия при наличии окклюзии.\n';
+    }
+  } else {
+    protocol += '[ASPECTS-10]: 10/10 баллов\n';
+    protocol += '  Поражённые регионы: не выявлены.\n';
+  }
+
+  protocol += '\nЗАКЛЮЧЕНИЕ:\n';
+  if (affectedRegions.size === 0) {
+    protocol += '  Признаков ишемии в бассейне СМА не выявлено.\n';
+    protocol += '  ASPECTS 10/10 — минимальные изменения, благоприятный прогноз.\n';
+  } else if (score <= 5) {
+    protocol += `  Обширный инфаркт в бассейне СМА (ASPECTS ${score}/10).\n`;
+    protocol += '  Рекомендовано: консультация невролога, оценка рисков тромболитической терапии.\n';
+  } else if (score <= 7) {
+    protocol += `  Умеренный инфаркт в бассейне СМА (ASPECTS ${score}/10).\n`;
+    protocol += '  Рекомендовано: рассмотреть тромбэктомию, консультация невролога.\n';
+  } else {
+    protocol += `  Минимальные ишемические изменения (ASPECTS ${score}/10).\n`;
+    protocol += '  Рекомендовано: консультация невролога, контроль в динамике.\n';
+  }
+
+  document.getElementById('protocol-text').textContent = protocol;
+  document.getElementById('protocol-panel').style.display = 'block';
+  document.getElementById('protocol-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function copyProtocol() {
+  const text = document.getElementById('protocol-text').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('✅ Протокол скопирован в буфер обмена');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('✅ Протокол скопирован');
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('✅ Протокол скопирован');
+  }
+}
+
+function resetAll() {
+  if (!confirm('Сбросить всё?')) return;
+  affectedRegions.clear();
+  pathologyData = null;
+  document.querySelectorAll('.aspects-region').forEach(r => r.classList.remove('affected'));
+  updateScore();
+  updateSelectedList();
+  document.getElementById('protocol-panel').style.display = 'none';
+}
+
+// ============================================================
+// ОТПРАВКА РЕЗУЛЬТАТА В РОДИТЕЛЬСКОЕ ОКНО (КТ-Журнал)
+// ============================================================
+function sendToParent() {
+  let text = '';
+
+  // Для ASPECTS-10: id="protocol-text" (div)
+  const protocolEl = document.getElementById('protocol-text');
+  if (protocolEl) {
+    text = protocolEl.textContent || '';
+  }
+
+  if (!text.trim()) {
+    alert('⚠️ Сначала сформируйте протокол (нажмите «📋 Сформировать протокол»)');
+    return;
+  }
+
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({
+      type: 'widget-result',
+      text: text
+    }, '*');
+  } else {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('✅ Протокол скопирован в буфер обмена');
+      }).catch(() => {
+        alert('⚠️ Не удалось скопировать');
+      });
+    } else {
+      alert('✅ Протокол готов: ' + text.substring(0, 100) + '...');
+    }
+  }
+}
+</script>
+</body>
+</html>

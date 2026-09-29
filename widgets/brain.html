@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Головной мозг — КТ диагностика</title>
+<style>
+:root {
+  --bg: #f0f4f8; --card: #ffffff; --border: #cbd5e1; --text: #0f172a;
+  --muted: #64748b; --primary: #0ea5e9; --success: #22c55e;
+  --danger: #ef4444; --warning: #f59e0b;
+  --shadow: 0 8px 30px rgba(0,0,0,0.12); --radius: 16px;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+.header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: var(--card); padding: 14px 24px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; }
+.header h1 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.header .badge { background: var(--primary); color: #fff; padding: 4px 14px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+.toolbar button { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-weight: 500; font-size: 0.82rem; cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 6px; font-family: inherit; }
+.toolbar button:hover { background: var(--border); transform: translateY(-2px); }
+.toolbar .primary { background: var(--primary); color: #fff; border: none; }
+.toolbar .primary:hover { background: #0284c7; }
+.toolbar .success { background: var(--success); color: #fff; border: none; }
+.toolbar .success:hover { background: #16a34a; }
+
+.main-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; flex: 1; }
+@media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+.card-header { padding: 12px 20px; background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+.card-header .count { font-weight: 400; font-size: 0.75rem; color: var(--muted); }
+.card-body { padding: 16px 20px; flex: 1; overflow: auto; max-height: 900px; }
+
+.layers-panel { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--border); }
+.layer-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; user-select: none; }
+.layer-toggle:hover { background: #f0f9ff; border-color: var(--primary); }
+.layer-toggle input { cursor: pointer; width: 14px; height: 14px; }
+.layer-toggle.active { background: #e0f2fe; border-color: var(--primary); }
+
+.schema-wrap { position: relative; background: #fefefe; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+.schema-wrap svg { width: 100%; height: auto; display: block; }
+
+.layer { transition: opacity 0.3s ease; }
+.layer.hidden { display: none; }
+.layer.dimmed { opacity: 0.18 !important; pointer-events: none; }
+
+.struct { cursor: pointer; transition: all 0.25s ease; stroke: #1e293b; stroke-width: 1.2; opacity: 0.85; }
+.struct:hover { opacity: 1; stroke-width: 2; filter: brightness(1.1) drop-shadow(0 0 6px rgba(14,165,233,0.5)); }
+.struct.selected { stroke: #0284c7; stroke-width: 3; opacity: 1; filter: drop-shadow(0 0 10px rgba(14,165,233,0.8)); }
+.struct.has-pathology { stroke: #dc2626; stroke-width: 2.5; filter: drop-shadow(0 0 8px rgba(239,68,68,0.7)); }
+
+.aspects-region { cursor: pointer; transition: all 0.25s ease; stroke: #1e293b; stroke-width: 1.5; opacity: 0.85; }
+.aspects-region:hover { opacity: 1; stroke-width: 2.5; filter: brightness(1.15); }
+.aspects-region.selected { stroke: #0284c7; stroke-width: 3; opacity: 1; }
+.aspects-region.affected { stroke: #dc2626; stroke-width: 3; opacity: 1; animation: patho-pulse 1.5s ease-in-out infinite; }
+@keyframes patho-pulse { 0%,100% { filter: drop-shadow(0 0 6px rgba(239,68,68,0.3)); } 50% { filter: drop-shadow(0 0 20px rgba(239,68,68,0.8)); } }
+
+.label { font-size: 11px; font-weight: 700; fill: #0f172a; pointer-events: none; user-select: none; }
+.label-sm { font-size: 9px; font-weight: 600; fill: #475569; pointer-events: none; user-select: none; }
+.label-tiny { font-size: 8px; font-weight: 700; fill: #334155; pointer-events: none; user-select: none; }
+
+.add-pathology-panel { margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%); border: 2px dashed #7c3aed; border-radius: 10px; display: none; }
+.add-pathology-panel.show { display: block; }
+.add-pathology-panel .panel-title { font-size: 0.85rem; font-weight: 700; color: #5b21b6; margin-bottom: 8px; }
+.add-pathology-panel .selected-list { font-size: 0.78rem; color: #4b5563; margin-bottom: 10px; line-height: 1.5; }
+.add-pathology-panel .selected-list span { display: inline-block; background: #7c3aed; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin: 2px; }
+.add-pathology-panel .panel-buttons { display: flex; gap: 8px; }
+.add-pathology-panel button { flex: 1; padding: 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all var(--transition); font-family: inherit; }
+.add-pathology-panel .btn-add { background: #7c3aed; color: #fff; }
+.add-pathology-panel .btn-add:hover { background: #6d28d9; }
+.add-pathology-panel .btn-clear { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+.counter-box { display: none; padding: 8px 14px; background: #e0f2fe; border: 1px solid #0ea5e9; border-radius: 8px; margin-bottom: 10px; font-size: 0.82rem; font-weight: 600; color: #0c4a6e; }
+.counter-box.show { display: block; }
+.counter-box button { margin-left: 12px; padding: 3px 10px; background: #fff; border: 1px solid #0ea5e9; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; font-family: inherit; color: #0c4a6e; }
+
+.aspects-panel { display: block; padding: 12px 14px; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 10px; margin-bottom: 10px; }
+.aspects-panel .ap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+.aspects-panel .ap-title { font-size: 0.85rem; font-weight: 700; color: #92400e; }
+.aspects-panel .ap-score { font-size: 1.4rem; font-weight: 700; color: #16a34a; }
+.aspects-panel .ap-score.medium { color: #f59e0b; }
+.aspects-panel .ap-score.low { color: #dc2626; }
+.aspects-panel .ap-interp { font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 12px; }
+.aspects-panel .ap-interp.high { background: #dcfce7; color: #166534; }
+.aspects-panel .ap-interp.med { background: #fef3c7; color: #92400e; }
+.aspects-panel .ap-interp.low { background: #fee2e2; color: #991b1b; }
+
+.breadcrumbs { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #f1f5f9; border-radius: 8px; font-size: 0.78rem; margin-bottom: 10px; min-height: 36px; flex-wrap: wrap; }
+.breadcrumbs .crumb { padding: 4px 10px; border-radius: 6px; font-weight: 600; color: var(--primary); cursor: pointer; }
+.breadcrumbs .crumb.current { background: #0ea5e9; color: #fff; cursor: default; }
+.breadcrumbs .hint { color: var(--muted); font-style: italic; }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: #fff; border-radius: 16px; padding: 24px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+.modal-header h2 { font-size: 1.1rem; font-weight: 700; }
+.modal-close { cursor: pointer; font-size: 1.5rem; color: var(--muted); background: none; border: none; padding: 4px 8px; border-radius: 6px; }
+.modal-close:hover { background: var(--bg); color: var(--danger); }
+.pathology-type-list { display: flex; flex-direction: column; gap: 8px; }
+.pathology-type-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); transition: all 0.2s; }
+.pathology-type-item:hover { background: #f1f5f9; border-color: var(--primary); }
+.pathology-type-item .color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.param-form .form-group { margin-bottom: 12px; }
+.param-form label { display: block; font-size: 0.8rem; font-weight: 600; color: #4b5563; margin-bottom: 4px; }
+.param-form input, .param-form select, .param-form textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; background: #fff; font-family: inherit; }
+.param-form input:focus, .param-form select:focus, .param-form textarea:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+.param-form textarea { min-height: 70px; resize: vertical; }
+.param-form .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.param-form .form-buttons { display: flex; gap: 8px; margin-top: 16px; }
+.param-form .form-buttons button { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+.param-form .btn-save { background: #22c55e; color: #fff; }
+.param-form .btn-cancel { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+.protocol-section { margin-bottom: 20px; }
+.protocol-section-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.pathology-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+.pathology-card.inflammation-card { border-left-color: #ef4444; }
+.pathology-card.tumor-card { border-left-color: #7c3aed; }
+.pathology-card.trauma-card { border-left-color: #dc2626; }
+.pathology-card.vascular-card { border-left-color: #0ea5e9; }
+.pathology-card.degenerative-card { border-left-color: #a16207; }
+.pathology-card .pc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+.pathology-card .pc-title { font-weight: 700; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; }
+.pathology-card .pc-remove { cursor: pointer; color: var(--muted); font-size: 1.1rem; background: none; border: none; padding: 2px 6px; border-radius: 4px; }
+.pathology-card .pc-remove:hover { background: var(--danger); color: #fff; }
+.pathology-card .pc-organs { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; }
+.pathology-card .pc-organs span { display: inline-block; background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin: 2px; }
+.pathology-card .pc-params { font-size: 0.75rem; margin-bottom: 6px; }
+.pathology-card .pc-params .param-tag { display: inline-block; padding: 3px 8px; border-radius: 6px; margin: 2px; font-weight: 600; background: #e0f2fe; color: #0369a1; }
+.pathology-card .pc-desc { font-size: 0.82rem; line-height: 1.5; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
+.final-protocol { width: 100%; min-height: 220px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; line-height: 1.7; font-family: 'Segoe UI', monospace; background: #fafcff; resize: vertical; margin-top: 12px; }
+.final-protocol:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.15); }
+.status-bar { margin-top: 24px; padding: 12px 20px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: #fff; padding: 12px 24px; border-radius: 10px; box-shadow: var(--shadow); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; z-index: 10001; font-size: 0.9rem; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 700px) { body { padding: 12px; } .header { flex-direction: column; align-items: stretch; } .toolbar { justify-content: stretch; } .toolbar button { flex: 1; justify-content: center; font-size: 0.7rem; padding: 6px 10px; } .card-body { max-height: 500px; padding: 12px; } }
+@media print { .toolbar, .status-bar, .modal-overlay, .add-pathology-panel, .layers-panel, .counter-box { display: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div>
+    <h1>🧠 <span>Головной мозг</span></h1>
+    <span class="badge">Многослойная схема · v2</span>
+  </div>
+  <div class="toolbar">
+    <button class="success" onclick="resetAll()">🔄 Сбросить</button>
+    <button class="primary" onclick="generateFinalProtocol()">📋 Итоговый протокол</button>
+    <button onclick="copyToClipboard()">📋 Копировать</button>
+    <button onclick="window.print()">🖨 Печать</button>
+    <button class="success" onclick="sendToParent()" style="background:linear-gradient(135deg,#22c55e,#16a34a);">📥 Вставить в КТ-Журнал</button>
+  </div>
+</header>
+
+<div class="main-grid">
+
+  <div class="card">
+    <div class="card-header">
+      <span>📍 Анатомия (кликни на структуру)</span>
+      <span class="count" id="organsCount">Выбрано: 0</span>
+    </div>
+    <div class="card-body">
+
+      <div class="layers-panel" id="layersPanel">
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="parenchyma" onchange="toggleLayer('parenchyma', this.checked)"/> 🧠 Паренхима</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="meninges" onchange="toggleLayer('meninges', this.checked)"/> 🩸 Оболочки</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="ventricles" onchange="toggleLayer('ventricles', this.checked)"/> 💧 Желудочки</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="vessels" onchange="toggleLayer('vessels', this.checked)"/> 🩸 Сосуды</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="skull" onchange="toggleLayer('skull', this.checked)"/> 🦴 Кости черепа</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="aspects" onchange="toggleLayer('aspects', this.checked)"/> 🎯 ASPECTS</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="nerves" onchange="toggleLayer('nerves', this.checked)"/> 🌿 ЧМН</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="sinuses" onchange="toggleLayer('sinuses', this.checked)"/> 🫧 Пазухи</label>
+        <label class="layer-toggle active"><input type="checkbox" checked data-layer="ethmoid" onchange="toggleLayer('ethmoid', this.checked)"/> 🫧 Решётка</label>
+        <button type="button" onclick="hideAllLayers()" style="padding:6px 12px;border-radius:8px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit">🚫 Снять все</button>
+        <button type="button" onclick="showAllLayers()" style="padding:6px 12px;border-radius:8px;background:#dcfce7;color:#166534;border:1px solid #86efac;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit">✅ Все слои</button>
+      </div>
+
+      <div class="counter-box" id="counterBox">
+        🧠 Выбрано структур: <span id="counterNum">0</span>
+        <button onclick="clearAllSelection()">Снять всё</button>
+      </div>
+
+      <div class="aspects-panel" id="aspectsPanel">
+        <div class="ap-header">
+          <div>
+            <div class="ap-title">🎯 ASPECTS-10 — оценка ишемии в бассейне СМА</div>
+            <div style="font-size:0.72rem;color:#92400e;margin-top:2px">Кликай на регионы C, IC, L, I, M1–M6 с обеих сторон</div>
+          </div>
+          <div style="text-align:right">
+            <div class="ap-score" id="aspectsScore">10</div>
+            <div style="font-size:0.7rem;color:#92400e">из 10 баллов</div>
+          </div>
+        </div>
+        <div class="ap-interp high" id="aspectsInterp">Норма / Минимальные изменения</div>
+        <div style="margin-top:8px;font-size:0.75rem;color:#92400e">
+          Поражённые регионы: <strong id="aspectsList">—</strong>
+        </div>
+      </div>
+
+      <div class="breadcrumbs" id="breadcrumbs">
+        <span class="hint">💡 Кликни на структуру</span>
+      </div>
+
+      <div class="schema-wrap">
+        <svg viewBox="0 0 1000 900" xmlns="http://www.w3.org/2000/svg" id="brainSvg">
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: КОСТИ ЧЕРЕПА -->
+          <!-- ============================================ -->
+          <g id="layer-skull" class="layer">
+            <path class="struct" data-struct="skull_frontal"
+                  d="M500 80 Q400 80 320 130 Q260 180 240 260 L500 260 Z"
+                  fill="#f5f5f4" stroke="#78716c" stroke-width="2.5" opacity="0.5"/>
+            <text class="label-tiny" x="330" y="180">Лобная</text>
+
+            <path class="struct" data-struct="skull_parietal_r"
+                  d="M240 260 Q230 360 240 440 Q270 480 340 500 L500 500 L500 260 Z"
+                  fill="#e7e5e4" stroke="#78716c" stroke-width="2.5" opacity="0.5"/>
+            <text class="label-tiny" x="300" y="380">Теменная R</text>
+
+            <path class="struct" data-struct="skull_parietal_l"
+                  d="M760 260 Q770 360 760 440 Q730 480 660 500 L500 500 L500 260 Z"
+                  fill="#e7e5e4" stroke="#78716c" stroke-width="2.5" opacity="0.5"/>
+            <text class="label-tiny" x="640" y="380">Теменная L</text>
+
+            <path class="struct" data-struct="skull_temporal_r"
+                  d="M240 440 Q220 520 230 600 Q270 640 340 660 L500 660 L500 500 Q420 490 340 500 Q270 480 240 440 Z"
+                  fill="#d6d3d1" stroke="#78716c" stroke-width="2.5" opacity="0.5"/>
+            <text class="label-tiny" x="290" y="560">Височная R</text>
+
+            <path class="struct" data-struct="skull_temporal_l"
+                  d="M760 440 Q780 520 770 600 Q730 640 660 660 L500 660 L500 500 Q580 490 660 500 Q730 480 760 440 Z"
+                  fill="#d6d3d1" stroke="#78716c" stroke-width="2.5" opacity="0.5"/>
+            <text class="label-tiny" x="640" y="560">Височная L</text>
+
+            <path class="struct" data-struct="skull_occipital"
+                  d="M230 600 Q270 700 380 760 Q500 790 620 760 Q730 700 770 600 Q730 640 660 660 L500 660 Q340 660 230 600 Z"
+                  fill="#d6d3d1" stroke="#78716c" stroke-width="2.5" opacity="0.5"/>
+            <text class="label-tiny" x="470" y="740">Затылочная</text>
+
+            <path class="struct" data-struct="skull_sphenoid"
+                  d="M420 480 L580 480 L590 580 L410 580 Z"
+                  fill="#fde68a" stroke="#92400e" stroke-width="2" opacity="0.7"/>
+            <text class="label-tiny" x="450" y="535">Клиновидная</text>
+
+            <path class="struct" data-struct="skull_maxilla"
+                  d="M340 600 Q400 590 450 600 L450 680 Q400 690 340 680 Q320 640 340 600 Z"
+                  fill="#fef3c7" stroke="#92400e" stroke-width="2" opacity="0.7"/>
+            <path class="struct" data-struct="skull_maxilla"
+                  d="M550 600 Q600 590 660 600 Q680 640 660 680 Q600 690 550 680 Z"
+                  fill="#fef3c7" stroke="#92400e" stroke-width="2" opacity="0.7"/>
+            <text class="label-tiny" x="370" y="645">Верхняя челюсть</text>
+
+            <path class="struct" data-struct="skull_mandible"
+                  d="M340 690 Q400 700 450 700 L450 760 Q400 770 350 760 Q320 730 340 690 Z"
+                  fill="#fde68a" stroke="#92400e" stroke-width="2" opacity="0.7"/>
+            <path class="struct" data-struct="skull_mandible"
+                  d="M550 700 Q600 690 660 700 Q680 730 650 760 Q600 770 550 760 Z"
+                  fill="#fde68a" stroke="#92400e" stroke-width="2" opacity="0.7"/>
+            <text class="label-tiny" x="380" y="735">Нижняя челюсть</text>
+          </g>
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: ОБОЛОЧКИ МОЗГА -->
+          <!-- ============================================ -->
+          <g id="layer-meninges" class="layer">
+            <path class="struct" data-struct="dura_mater"
+                  d="M260 200 Q350 130 500 130 Q650 130 740 200 Q820 300 810 500 Q800 700 650 780 Q550 820 500 820 Q450 820 350 780 Q200 700 190 500 Q180 300 260 200 Z"
+                  fill="none" stroke="#78716c" stroke-width="6" opacity="0.55" stroke-dasharray="8 4"/>
+            <text class="label-tiny" x="200" y="500" transform="rotate(-90 200 500)">Твёрдая мозговая оболочка</text>
+
+            <path class="struct" data-struct="arachnoid_mater"
+                  d="M275 215 Q360 145 500 145 Q640 145 725 215 Q800 310 790 500 Q780 690 640 765 Q550 800 500 800 Q450 800 360 765 Q220 690 210 500 Q200 310 275 215 Z"
+                  fill="none" stroke="#0891b2" stroke-width="4" opacity="0.55"/>
+            <text class="label-tiny" x="215" y="720">Паутинная</text>
+
+            <path class="struct" data-struct="pia_mater"
+                  d="M300 240 Q400 180 500 180 Q600 180 700 240 Q760 340 750 500 Q740 660 620 730 Q540 760 500 760 Q460 760 380 730 Q260 660 250 500 Q240 340 300 240 Z"
+                  fill="none" stroke="#7dd3fc" stroke-width="2" opacity="0.5"/>
+
+            <ellipse class="struct" data-struct="sah_cisterns" cx="500" cy="440" rx="90" ry="60" fill="none" stroke="#22d3ee" stroke-width="3" opacity="0.5" stroke-dasharray="4 4"/>
+            <text class="label-tiny" x="450" y="445">Базальные цистерны</text>
+
+            <circle class="struct" data-struct="sah_site" cx="380" cy="380" r="14" fill="#dc2626" opacity="0.6"/>
+            <circle class="struct" data-struct="sah_site" cx="620" cy="380" r="14" fill="#dc2626" opacity="0.6"/>
+            <circle class="struct" data-struct="sah_site" cx="500" cy="500" r="14" fill="#dc2626" opacity="0.6"/>
+            <text class="label-tiny" x="320" y="360">САК</text>
+
+            <path class="struct" data-struct="epidural_space"
+                  d="M260 200 Q350 130 500 130 Q650 130 740 200 Q820 300 810 500 Q800 700 650 780 Q550 820 500 820 Q450 820 350 780 Q200 700 190 500 Q180 300 260 200 Z"
+                  fill="none" stroke="#dc2626" stroke-width="8" opacity="0.3"/>
+            <text class="label-tiny" x="790" y="240">Эпидуральное пространство</text>
+
+            <path class="struct" data-struct="subdural_space"
+                  d="M270 210 Q355 140 500 140 Q645 140 730 210 Q805 305 795 500 Q785 695 645 770 Q550 805 500 805 Q450 805 355 770 Q215 695 205 500 Q195 305 270 210 Z"
+                  fill="none" stroke="#7c3aed" stroke-width="4" opacity="0.35"/>
+            <text class="label-tiny" x="790" y="280">Субдуральное</text>
+          </g>
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: ПАРЕНХИМА -->
+          <!-- ============================================ -->
+          <g id="layer-parenchyma" class="layer">
+            <path class="struct" data-struct="frontal_r"
+                  d="M500 170 Q410 170 350 210 Q300 260 300 340 Q310 400 360 440 Q420 460 480 460 L500 460 Z"
+                  fill="#93c5fd" opacity="0.85"/>
+            <text class="label" x="380" y="310">ЛОБНАЯ</text>
+            <text class="label-tiny" x="395" y="325">(R)</text>
+
+            <path class="struct" data-struct="frontal_l"
+                  d="M500 170 Q590 170 650 210 Q700 260 700 340 Q690 400 640 440 Q580 460 520 460 L500 460 Z"
+                  fill="#93c5fd" opacity="0.85"/>
+            <text class="label" x="580" y="310">ЛОБНАЯ</text>
+            <text class="label-tiny" x="595" y="325">(L)</text>
+
+            <path class="struct" data-struct="parietal_r"
+                  d="M360 440 Q310 410 300 380 Q290 460 320 530 Q370 580 440 590 Q480 590 500 580 L500 460 Q440 460 360 440 Z"
+                  fill="#86efac" opacity="0.85"/>
+            <text class="label-sm" x="370" y="520">ТЕМЕННАЯ (R)</text>
+
+            <path class="struct" data-struct="parietal_l"
+                  d="M640 440 Q690 410 700 380 Q710 460 680 530 Q630 580 560 590 Q520 590 500 580 L500 460 Q560 460 640 440 Z"
+                  fill="#86efac" opacity="0.85"/>
+            <text class="label-sm" x="570" y="520">ТЕМЕННАЯ (L)</text>
+
+            <path class="struct" data-struct="temporal_r"
+                  d="M300 380 Q260 420 250 490 Q260 570 320 620 Q380 640 440 630 Q480 620 500 600 L500 580 Q440 590 370 580 Q320 530 320 460 Q300 420 300 380 Z"
+                  fill="#fcd34d" opacity="0.85"/>
+            <text class="label-sm" x="330" y="550">ВИСОЧНАЯ (R)</text>
+
+            <path class="struct" data-struct="temporal_l"
+                  d="M700 380 Q740 420 750 490 Q740 570 680 620 Q620 640 560 630 Q520 620 500 600 L500 580 Q560 590 630 580 Q680 530 680 460 Q700 420 700 380 Z"
+                  fill="#fcd34d" opacity="0.85"/>
+            <text class="label-sm" x="600" y="550">ВИСОЧНАЯ (L)</text>
+
+            <path class="struct" data-struct="occipital"
+                  d="M320 620 Q390 660 500 660 Q610 660 680 620 Q720 660 700 720 Q610 760 500 760 Q390 760 300 720 Q280 660 320 620 Z"
+                  fill="#c4b5fd" opacity="0.85"/>
+            <text class="label-sm" x="480" y="700" text-anchor="middle">ЗАТЫЛОЧНАЯ</text>
+
+            <path class="struct" data-struct="cerebellum"
+                  d="M340 680 Q440 720 500 720 Q560 720 660 680 Q680 720 640 760 Q560 790 500 790 Q440 790 360 760 Q320 720 340 680 Z"
+                  fill="#fca5a5" opacity="0.85"/>
+            <text class="label-sm" x="480" y="755" text-anchor="middle">Мозжечок</text>
+
+            <path class="struct" data-struct="brainstem"
+                  d="M470 660 Q490 655 510 660 Q515 700 510 750 Q500 770 490 770 Q480 770 470 750 Q465 700 470 660 Z"
+                  fill="#fda4af" opacity="0.9"/>
+            <text class="label-tiny" x="490" y="720">Ствол</text>
+          </g>
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: ЖЕЛУДОЧКИ -->
+          <!-- ============================================ -->
+          <g id="layer-ventricles" class="layer">
+            <path class="struct" data-struct="lateral_ventricle_r"
+                  d="M440 380 Q410 370 400 400 Q395 440 420 470 Q450 480 465 460 Q470 430 465 400 Q460 385 440 380 Z"
+                  fill="#bae6fd" opacity="0.7"/>
+            <path class="struct" data-struct="lateral_ventricle_l"
+                  d="M560 380 Q590 370 600 400 Q605 440 580 470 Q550 480 535 460 Q530 430 535 400 Q540 385 560 380 Z"
+                  fill="#bae6fd" opacity="0.7"/>
+            <text class="label-tiny" x="490" y="440" text-anchor="middle">Боковые</text>
+
+            <path class="struct" data-struct="ventricle_3"
+                  d="M485 470 L515 470 L518 540 L482 540 Z"
+                  fill="#7dd3fc" opacity="0.8"/>
+            <text class="label-tiny" x="490" y="510">III</text>
+
+            <path class="struct" data-struct="ventricle_4"
+                  d="M480 660 Q500 655 520 660 Q525 690 520 720 Q500 725 480 720 Q475 690 480 660 Z"
+                  fill="#38bdf8" opacity="0.8"/>
+            <text class="label-tiny" x="495" y="695">IV</text>
+          </g>
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: СОСУДЫ -->
+          <!-- ============================================ -->
+          <g id="layer-vessels" class="layer">
+            <path class="struct" data-struct="ica_r"
+                  d="M420 440 Q410 400 420 360 Q430 330 440 300"
+                  fill="none" stroke="#dc2626" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="struct" data-struct="ica_l"
+                  d="M580 440 Q590 400 580 360 Q570 330 560 300"
+                  fill="none" stroke="#dc2626" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+
+            <path class="struct" data-struct="mca_r"
+                  d="M440 300 Q400 280 360 270 Q320 270 290 290"
+                  fill="none" stroke="#ef4444" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="struct" data-struct="mca_l"
+                  d="M560 300 Q600 280 640 270 Q680 270 710 290"
+                  fill="none" stroke="#ef4444" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+            <path class="struct" data-struct="aca_r"
+                  d="M440 300 Q460 280 480 270 Q490 265 500 260"
+                  fill="none" stroke="#f97316" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="struct" data-struct="aca_l"
+                  d="M560 300 Q540 280 520 270 Q510 265 500 260"
+                  fill="none" stroke="#f97316" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+            <path class="struct" data-struct="pca_r"
+                  d="M440 440 Q400 470 360 490 Q320 510 290 530"
+                  fill="none" stroke="#eab308" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="struct" data-struct="pca_l"
+                  d="M560 440 Q600 470 640 490 Q680 510 710 530"
+                  fill="none" stroke="#eab308" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+            <path class="struct" data-struct="basilar"
+                  d="M500 540 Q500 600 500 660 Q500 700 500 740"
+                  fill="none" stroke="#a855f7" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+
+            <circle class="struct" data-struct="wilis_circle" cx="500" cy="330" r="70"
+                    fill="none" stroke="#0891b2" stroke-width="3" stroke-dasharray="6 5" opacity="0.7"/>
+          </g>
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: ЧМН -->
+          <!-- ============================================ -->
+          <g id="layer-nerves" class="layer">
+            <circle class="struct" data-struct="cn_ii" cx="440" cy="510" r="10" fill="#22d3ee" opacity="0.9"/>
+            <circle class="struct" data-struct="cn_ii" cx="560" cy="510" r="10" fill="#22d3ee" opacity="0.9"/>
+            <text class="label-tiny" x="410" y="530">II</text>
+            <text class="label-tiny" x="575" y="530">II</text>
+
+            <circle class="struct" data-struct="cn_vii" cx="380" cy="680" r="10" fill="#06b6d4" opacity="0.9"/>
+            <circle class="struct" data-struct="cn_vii" cx="620" cy="680" r="10" fill="#06b6d4" opacity="0.9"/>
+            <text class="label-tiny" x="340" y="700">VII</text>
+            <text class="label-tiny" x="630" y="700">VII</text>
+
+            <circle class="struct" data-struct="cn_viii" cx="420" cy="720" r="10" fill="#0891b2" opacity="0.9"/>
+            <circle class="struct" data-struct="cn_viii" cx="580" cy="720" r="10" fill="#0891b2" opacity="0.9"/>
+            <text class="label-tiny" x="390" y="745">VIII</text>
+            <text class="label-tiny" x="590" y="745">VIII</text>
+          </g>
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: ПАЗУХИ -->
+          <!-- ============================================ -->
+          <g id="layer-sinuses" class="layer">
+            <path class="struct" data-struct="sinus_frontal"
+                  d="M420 120 Q450 110 480 115 L480 170 Q450 175 420 170 Z"
+                  fill="#cffafe" opacity="0.8"/>
+            <path class="struct" data-struct="sinus_frontal"
+                  d="M520 115 Q550 110 580 120 L580 170 Q550 175 520 170 Z"
+                  fill="#cffafe" opacity="0.8"/>
+            <text class="label-tiny" x="500" y="105" text-anchor="middle">Лобные пазухи</text>
+
+            <path class="struct" data-struct="sinus_maxillary_r"
+                  d="M330 590 Q360 580 390 590 L390 660 Q360 670 330 660 Z"
+                  fill="#a5f3fc" opacity="0.8"/>
+            <path class="struct" data-struct="sinus_maxillary_l"
+                  d="M610 590 Q640 580 670 590 L670 660 Q640 670 610 660 Z"
+                  fill="#a5f3fc" opacity="0.8"/>
+            <text class="label-tiny" x="340" y="570">Гайморовы</text>
+
+            <path class="struct" data-struct="sinus_sphenoid"
+                  d="M460 560 Q500 550 540 560 L545 600 Q500 615 455 600 Z"
+                  fill="#67e8f9" opacity="0.8"/>
+            <text class="label-tiny" x="500" y="600" text-anchor="middle">Клиновидная</text>
+          </g>
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: ЯЧЕЙКИ РЕШЁТЧАТОЙ КОСТИ -->
+          <!-- ============================================ -->
+          <g id="layer-ethmoid" class="layer">
+            <g id="ethmoid_r">
+              <rect class="struct" data-struct="ethmoid_r" x="440" y="540" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_r" x="455" y="540" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_r" x="440" y="555" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_r" x="455" y="555" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_r" x="440" y="570" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_r" x="455" y="570" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+            </g>
+            <g id="ethmoid_l">
+              <rect class="struct" data-struct="ethmoid_l" x="535" y="540" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_l" x="550" y="540" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_l" x="535" y="555" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_l" x="550" y="555" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_l" x="535" y="570" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+              <rect class="struct" data-struct="ethmoid_l" x="550" y="570" width="10" height="10" fill="#7dd3fc" opacity="0.75"/>
+            </g>
+            <text class="label-tiny" x="500" y="530" text-anchor="middle">Ячейки решётчатой кости</text>
+          </g>
+
+          <!-- ============================================ -->
+          <!-- СЛОЙ: ASPECTS (M1-M6 с каждой стороны) -->
+          <!-- ============================================ -->
+          <g id="layer-aspects" class="layer">
+
+            <!-- ===== ПРАВОЕ ПОЛУШАРИЕ (слева на схеме) ===== -->
+            <path class="aspects-region" data-region="C" data-side="r"
+                  d="M445 400 Q465 395 485 400 Q490 425 485 450 Q465 455 445 450 Q440 425 445 400 Z"
+                  fill="#4a90d9" opacity="0.75"/>
+            <text class="label-tiny" x="460" y="430">C</text>
+
+            <path class="aspects-region" data-region="IC" data-side="r"
+                  d="M485 405 L505 410 L503 445 L483 440 Z"
+                  fill="#2ed573" opacity="0.75"/>
+            <text class="label-tiny" x="490" y="428">IC</text>
+
+            <path class="aspects-region" data-region="L" data-side="r"
+                  d="M410 430 Q435 420 455 435 Q460 460 450 480 Q425 480 410 465 Q400 445 410 430 Z"
+                  fill="#ff4757" opacity="0.75"/>
+            <text class="label-tiny" x="428" y="460">L</text>
+
+            <path class="aspects-region" data-region="I" data-side="r"
+                  d="M380 420 Q398 410 410 425 Q415 445 405 465 Q388 465 380 445 Q375 430 380 420 Z"
+                  fill="#9b59b6" opacity="0.75"/>
+            <text class="label-tiny" x="392" y="445">I</text>
+
+            <path class="aspects-region" data-region="M1" data-side="r"
+                  d="M430 230 Q390 240 370 280 Q360 315 380 335 Q415 340 445 320 Q465 290 455 250 Z"
+                  fill="#f39c12" opacity="0.7"/>
+            <text class="label-tiny" x="405" y="295">M1</text>
+
+            <path class="aspects-region" data-region="M2" data-side="r"
+                  d="M340 350 Q330 410 340 470 Q365 510 400 510 Q420 480 410 435 Q390 385 370 350 Z"
+                  fill="#f1c40f" opacity="0.7"/>
+            <text class="label-tiny" x="360" y="440">M2</text>
+
+            <path class="aspects-region" data-region="M3" data-side="r"
+                  d="M370 510 Q400 545 425 575 Q425 605 405 625 Q370 620 350 590 Q340 550 355 520 Z"
+                  fill="#1abc9c" opacity="0.7"/>
+            <text class="label-tiny" x="390" y="580">M3</text>
+
+            <path class="aspects-region" data-region="M4" data-side="r"
+                  d="M380 200 Q350 190 330 170 Q325 150 340 140 Q370 145 395 165 Q400 185 380 200 Z"
+                  fill="#e74c8b" opacity="0.7"/>
+            <text class="label-tiny" x="355" y="180">M4</text>
+
+            <path class="aspects-region" data-region="M5" data-side="r"
+                  d="M300 290 Q275 290 260 310 Q255 340 270 365 Q295 370 310 350 Q320 320 300 290 Z"
+                  fill="#8e44ad" opacity="0.7"/>
+            <text class="label-tiny" x="275" y="330">M5</text>
+
+            <path class="aspects-region" data-region="M6" data-side="r"
+                  d="M290 490 Q260 500 245 530 Q245 570 265 590 Q295 585 305 560 Q315 530 300 505 Z"
+                  fill="#3498db" opacity="0.7"/>
+            <text class="label-tiny" x="270" y="545">M6</text>
+
+            <!-- ===== ЛЕВОЕ ПОЛУШАРИЕ (справа на схеме) ===== -->
+            <path class="aspects-region" data-region="C" data-side="l"
+                  d="M515 400 Q535 395 555 400 Q560 425 555 450 Q535 455 515 450 Q510 425 515 400 Z"
+                  fill="#4a90d9" opacity="0.75"/>
+            <text class="label-tiny" x="530" y="430">C</text>
+
+            <path class="aspects-region" data-region="IC" data-side="l"
+                  d="M495 410 L515 405 L517 440 L497 445 Z"
+                  fill="#2ed573" opacity="0.75"/>
+            <text class="label-tiny" x="503" y="428">IC</text>
+
+            <path class="aspects-region" data-region="L" data-side="l"
+                  d="M545 435 Q565 420 590 430 Q600 445 590 465 Q575 480 550 480 Q540 460 545 435 Z"
+                  fill="#ff4757" opacity="0.75"/>
+            <text class="label-tiny" x="570" y="460">L</text>
+
+            <path class="aspects-region" data-region="I" data-side="l"
+                  d="M590 425 Q602 410 620 420 Q625 430 620 445 Q610 465 595 465 Q585 445 590 425 Z"
+                  fill="#9b59b6" opacity="0.75"/>
+            <text class="label-tiny" x="602" y="445">I</text>
+
+            <path class="aspects-region" data-region="M1" data-side="l"
+                  d="M570 230 Q610 240 630 280 Q640 315 620 335 Q585 340 555 320 Q535 290 545 250 Z"
+                  fill="#f39c12" opacity="0.7"/>
+            <text class="label-tiny" x="590" y="295">M1</text>
+
+            <path class="aspects-region" data-region="M2" data-side="l"
+                  d="M660 350 Q670 410 660 470 Q635 510 600 510 Q580 480 590 435 Q610 385 630 350 Z"
+                  fill="#f1c40f" opacity="0.7"/>
+            <text class="label-tiny" x="635" y="440">M2</text>
+
+            <path class="aspects-region" data-region="M3" data-side="l"
+                  d="M630 510 Q600 545 575 575 Q575 605 595 625 Q630 620 650 590 Q660 550 645 520 Z"
+                  fill="#1abc9c" opacity="0.7"/>
+            <text class="label-tiny" x="600" y="580">M3</text>
+
+            <path class="aspects-region" data-region="M4" data-side="l"
+                  d="M620 200 Q650 190 670 170 Q675 150 660 140 Q630 145 605 165 Q600 185 620 200 Z"
+                  fill="#e74c8b" opacity="0.7"/>
+            <text class="label-tiny" x="635" y="180">M4</text>
+
+            <path class="aspects-region" data-region="M5" data-side="l"
+                  d="M700 290 Q725 290 740 310 Q745 340 730 365 Q705 370 690 350 Q680 320 700 290 Z"
+                  fill="#8e44ad" opacity="0.7"/>
+            <text class="label-tiny" x="700" y="330">M5</text>
+
+            <path class="aspects-region" data-region="M6" data-side="l"
+                  d="M710 490 Q740 500 755 530 Q755 570 735 590 Q705 585 695 560 Q685 530 700 505 Z"
+                  fill="#3498db" opacity="0.7"/>
+            <text class="label-tiny" x="715" y="545">M6</text>
+
+          </g>
+
+        </svg>
+      </div>
+
+      <div class="add-pathology-panel" id="addPanel">
+        <div class="panel-title">🎯 Выбранные структуры:</div>
+        <div class="selected-list" id="selectedList"></div>
+        <div class="panel-buttons">
+          <button class="btn-add" onclick="openPathologyTypeModal()">➕ Добавить патологию</button>
+          <button class="btn-clear" onclick="clearSelection()">Очистить выбор</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span>📝 Описания патологий и протокол</span>
+      <span class="count" id="pathologyCount">Патологий: 0</span>
+    </div>
+    <div class="card-body">
+      <div class="protocol-section">
+        <div class="protocol-section-title">🎯 Добавленные патологии</div>
+        <div id="pathologiesContainer">
+          <div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Кликни на структуру на схеме слева</div>
+        </div>
+      </div>
+      <div class="protocol-section" style="margin-top: 20px;">
+        <div class="protocol-section-title">📋 Итоговый протокол</div>
+        <textarea class="final-protocol" id="finalProtocol">На серии томограмм головного мозга получены изображения суб- и супратенториальных структур.
+
+СМЕЩЕНИЯ СРЕДИННЫХ СТРУКТУР не выявлено.
+
+ВЕЩЕСТВО ГОЛОВНОГО МОЗГА: Дифференцировка серого и белого вещества не нарушена. Очагов патологической плотности, объёмных образований не выявлено.
+
+ЛИКВОРОСОДЕРЖАЩИЕ ПРОСТРАНСТВА: Субарахноидальные пространства не расширены. Цистерны не деформированы, не расширены. Боковые желудочки симметричны, не расширены. Третий желудочек до 6 мм. Четвёртый желудочек не расширен.
+
+СЕЛЛЯРНАЯ ОБЛАСТЬ: не изменена. Гипофиз расположен в полости турецкого седла, не увеличен.
+
+КРАНИОВЕРТЕБРАЛЬНЫЙ ПЕРЕХОД: без особенностей. Миндалины мозжечка обычно расположены.
+
+Отмечается обызвествление шишковидной железы и сосудистых сплетений задних рогов боковых желудочков.
+
+[ASPECTS-10]: 10/10 баллов. Поражённые регионы: не выявлены.
+
+ЗАКЛЮЧЕНИЕ:
+Признаков ишемии в бассейне СМА не выявлено. ASPECTS 10/10 — минимальные изменения, благоприятный прогноз.</textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="typeModal">
+  <div class="modal">
+    <div class="modal-header"><h2>Выбери тип патологии</h2><button class="modal-close" onclick="closeTypeModal()">×</button></div>
+    <div class="pathology-type-list" id="typeList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="paramModal">
+  <div class="modal">
+    <div class="modal-header"><h2 id="paramModalTitle">Параметры</h2><button class="modal-close" onclick="closeParamModal()">×</button></div>
+    <div class="param-form" id="paramForm"></div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span>💡 <span id="statusMessage">Кликни на структуру → выбери патологию</span></span>
+  <span>📌 <span id="statusCount">Структур: 0 | Патологий: 0</span></span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+'use strict';
+
+const $ = id => document.getElementById(id);
+const toast = $('toast');
+
+function showToast(msg) {
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// СЛОИ
+// ============================================================
+const ALL_LAYERS = ['parenchyma','meninges','ventricles','vessels','skull','aspects','nerves','sinuses','ethmoid'];
+
+window.toggleLayer = function(layerId, visible) {
+  const layer = $('layer-' + layerId);
+  if (!layer) return;
+  if (visible) layer.classList.remove('hidden');
+  else layer.classList.add('hidden');
+  const cb = event && event.target ? event.target : null;
+  if (cb && cb.parentElement) cb.parentElement.classList.toggle('active', visible);
+};
+
+window.hideAllLayers = function() {
+  ALL_LAYERS.forEach(id => {
+    const layer = $('layer-' + id);
+    if (layer) layer.classList.add('hidden');
+  });
+  document.querySelectorAll('#layersPanel input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    if (cb.parentElement) cb.parentElement.classList.remove('active');
+  });
+  showToast('🚫 Все слои скрыты');
+};
+
+window.showAllLayers = function() {
+  ALL_LAYERS.forEach(id => {
+    const layer = $('layer-' + id);
+    if (layer) layer.classList.remove('hidden');
+  });
+  document.querySelectorAll('#layersPanel input[type="checkbox"]').forEach(cb => {
+    cb.checked = true;
+    if (cb.parentElement) cb.parentElement.classList.add('active');
+  });
+  showToast('✅ Все слои показаны');
+};
+
+function dimAllExcept(activeLayerId) {
+  document.querySelectorAll('.layer').forEach(l => {
+    if (l.id === 'layer-' + activeLayerId) l.classList.remove('dimmed');
+    else l.classList.add('dimmed');
+  });
+}
+
+function undimAll() {
+  document.querySelectorAll('.layer').forEach(l => l.classList.remove('dimmed'));
+}
+
+// ============================================================
+// СОСТОЯНИЕ
+// ============================================================
+const state = {
+  selected: new Set(),
+  aspectsAffected: new Set(),
+  pathologies: [],
+  currentTypeId: null,
+  activeStruct: null
+};
+
+// ============================================================
+// СПРАВОЧНИКИ
+// ============================================================
+const STRUCT_NAMES = {
+  // Кости черепа
+  skull_frontal: 'Лобная кость',
+  skull_parietal_r: 'Правая теменная кость', skull_parietal_l: 'Левая теменная кость',
+  skull_temporal_r: 'Правая височная кость', skull_temporal_l: 'Левая височная кость',
+  skull_occipital: 'Затылочная кость', skull_sphenoid: 'Клиновидная кость',
+  skull_maxilla: 'Верхняя челюсть', skull_mandible: 'Нижняя челюсть',
+  // Оболочки
+  dura_mater: 'Твёрдая мозговая оболочка',
+  arachnoid_mater: 'Паутинная оболочка',
+  pia_mater: 'Мягкая мозговая оболочка',
+  sah_cisterns: 'Субарахноидальные цистерны',
+  sah_site: 'Точка САК',
+  epidural_space: 'Эпидуральное пространство',
+  subdural_space: 'Субдуральное пространство',
+  // Ячейки решётки
+  ethmoid_r: 'Ячейки решётчатой кости (R)',
+  ethmoid_l: 'Ячейки решётчатой кости (L)',
+  // Паренхима
+  frontal_r: 'Лобная доля (R)', frontal_l: 'Лобная доля (L)',
+  parietal_r: 'Теменная доля (R)', parietal_l: 'Теменная доля (L)',
+  temporal_r: 'Височная доля (R)', temporal_l: 'Височная доля (L)',
+  occipital: 'Затылочная доля', cerebellum: 'Мозжечок', brainstem: 'Ствол мозга',
+  // Желудочки
+  lateral_ventricle_r: 'Правый боковой желудочек', lateral_ventricle_l: 'Левый боковой желудочек',
+  ventricle_3: 'III желудочек', ventricle_4: 'IV желудочек',
+  // Сосуды
+  ica_r: 'ВСА справа', ica_l: 'ВСА слева',
+  mca_r: 'СМА справа', mca_l: 'СМА слева',
+  aca_r: 'ПМА справа', aca_l: 'ПМА слева',
+  pca_r: 'ЗМА справа', pca_l: 'ЗМА слева',
+  basilar: 'Базилярная артерия', wilis_circle: 'Вилизиев круг',
+  // ЧМН
+  cn_ii: 'Зрительный нерв (II)', cn_vii: 'Лицевой нерв (VII)', cn_viii: 'Слуховой нерв (VIII)',
+  // Пазухи
+  sinus_frontal: 'Лобные пазухи', sinus_maxillary_r: 'Гайморова пазуха (R)',
+  sinus_maxillary_l: 'Гайморова пазуха (L)', sinus_sphenoid: 'Клиновидная пазуха'
+};
+
+// ============================================================
+// ПАТОЛОГИИ
+// ============================================================
+const PATHOLOGIES = [
+  // Оболочки
+  { id: 'sah', name: '🩸 САК (субарахноидальное кровоизлияние)', color: '#dc2626', category: 'vascular', targets: ['sah_cisterns','sah_site','arachnoid_mater'] },
+  { id: 'sdh', name: '🩸 СДГ (субдуральная гематома)', color: '#7c3aed', category: 'trauma', targets: ['subdural_space','dura_mater','arachnoid_mater'] },
+  { id: 'edh', name: '🩸 ЭДГ (эпидуральная гематома)', color: '#dc2626', category: 'trauma', targets: ['epidural_space','dura_mater'] },
+  { id: 'meningitis', name: '🔥 Менинги

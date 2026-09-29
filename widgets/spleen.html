@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Селезёнка — КТ диагностика</title>
+    <style>
+        :root {
+            --bg: #f0f4f8; --card: #ffffff; --border: #cbd5e1; --text: #0f172a;
+            --muted: #64748b; --primary: #0ea5e9; --success: #22c55e;
+            --danger: #ef4444; --warning: #f59e0b;
+            --shadow: 0 8px 30px rgba(0,0,0,0.12); --radius: 16px;
+            --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; background: var(--card); padding: 14px 24px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; }
+        .header h1 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .header .badge { background: var(--primary); color: #fff; padding: 4px 14px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; }
+        .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+        .toolbar button { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-weight: 500; font-size: 0.82rem; cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 6px; }
+        .toolbar button:hover { background: var(--border); transform: translateY(-2px); }
+        .toolbar .primary { background: var(--primary); color: #fff; border: none; }
+        .toolbar .primary:hover { background: #0284c7; }
+        .toolbar .success { background: var(--success); color: #fff; border: none; }
+        .toolbar .success:hover { background: #16a34a; }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
+        @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr; } }
+        .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+        .card-header { padding: 12px 20px; background: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+        .card-header .count { font-weight: 400; font-size: 0.75rem; color: var(--muted); }
+        .card-body { padding: 16px 20px; flex: 1; overflow: auto; max-height: 800px; }
+        .diagrams-container { display: flex; flex-direction: column; gap: 16px; padding: 8px; background: #fafcff; border-radius: 12px; border: 1px solid var(--border); }
+        .diagram-section { background: #fff; border-radius: 10px; padding: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .diagram-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .diagram-title .badge { background: var(--primary); color: #fff; padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; }
+        .diagram-section svg { width: 100%; height: auto; display: block; }
+        .diagram-section svg .organ { cursor: pointer; transition: all 0.3s ease; stroke: #1e293b; stroke-width: 1.5; opacity: 0.95; }
+        .diagram-section svg .organ:hover { opacity: 1; filter: brightness(1.08) drop-shadow(0 0 6px rgba(14,165,233,0.3)); }
+        .diagram-section svg .organ.selected { stroke: #0284c7; stroke-width: 3; filter: drop-shadow(0 0 10px rgba(14,165,233,0.6)); opacity: 1; }
+        .diagram-section svg .organ.has-pathology { stroke: #dc2626; stroke-width: 3; filter: drop-shadow(0 0 14px rgba(239,68,68,0.7)); animation: patho-pulse 1.2s ease-in-out infinite; opacity: 1; }
+        @keyframes patho-pulse { 0%,100% { filter: drop-shadow(0 0 6px rgba(239,68,68,0.3)); } 50% { filter: drop-shadow(0 0 20px rgba(239,68,68,0.8)); } }
+        .diagram-section svg .organ-label { font-size: 11px; font-weight: 700; fill: #0f172a; pointer-events: none; user-select: none; }
+        .diagram-section svg .organ-label-small { font-size: 9px; font-weight: 600; fill: #475569; pointer-events: none; user-select: none; }
+        .add-pathology-panel { margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%); border: 2px dashed #7c3aed; border-radius: 10px; display: none; }
+        .add-pathology-panel.show { display: block; }
+        .add-pathology-panel .panel-title { font-size: 0.85rem; font-weight: 700; color: #5b21b6; margin-bottom: 8px; }
+        .add-pathology-panel .selected-list { font-size: 0.78rem; color: #4b5563; margin-bottom: 10px; line-height: 1.5; }
+        .add-pathology-panel .selected-list span { display: inline-block; background: #7c3aed; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin: 2px; }
+        .add-pathology-panel .panel-buttons { display: flex; gap: 8px; }
+        .add-pathology-panel button { flex: 1; padding: 8px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all var(--transition); }
+        .add-pathology-panel .btn-add { background: #7c3aed; color: #fff; }
+        .add-pathology-panel .btn-add:hover { background: #6d28d9; }
+        .add-pathology-panel .btn-clear { background: #fff; color: var(--text); border: 1px solid var(--border); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #fff; border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+        .modal-header h2 { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+        .modal-close { cursor: pointer; font-size: 1.5rem; color: var(--muted); background: none; border: none; padding: 4px 8px; border-radius: 6px; }
+        .modal-close:hover { background: var(--bg); color: var(--danger); }
+        .pathology-type-list { display: flex; flex-direction: column; gap: 8px; }
+        .pathology-type-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 0.88rem; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); transition: all 0.2s; }
+        .pathology-type-item:hover { background: #f1f5f9; border-color: var(--primary); }
+        .pathology-type-item .color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .param-form { margin-top: 12px; }
+        .param-form .form-group { margin-bottom: 12px; }
+        .param-form label { display: block; font-size: 0.8rem; font-weight: 600; color: #4b5563; margin-bottom: 4px; }
+        .param-form input, .param-form select, .param-form textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; background: #fff; font-family: inherit; }
+        .param-form input:focus, .param-form select:focus, .param-form textarea:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+        .param-form textarea { min-height: 80px; resize: vertical; }
+        .param-form .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .param-form .form-buttons { display: flex; gap: 8px; margin-top: 16px; }
+        .param-form .form-buttons button { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; }
+        .param-form .btn-save { background: #22c55e; color: #fff; }
+        .param-form .btn-save:hover { background: #16a34a; }
+        .param-form .btn-cancel { background: #fff; color: var(--text); border: 1px solid var(--border); }
+        .protocol-section { margin-bottom: 20px; }
+        .protocol-section-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .pathology-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+        .pathology-card.cyst-card { border-left-color: #f59e0b; }
+        .pathology-card.trauma-card { border-left-color: #ef4444; }
+        .pathology-card.tumor-card { border-left-color: #7c3aed; }
+        .pathology-card.inflammation-card { border-left-color: #ef4444; }
+        .pathology-card .pc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+        .pathology-card .pc-title { font-weight: 700; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; }
+        .pathology-card .pc-remove { cursor: pointer; color: var(--muted); font-size: 1.1rem; background: none; border: none; padding: 2px 6px; border-radius: 4px; }
+        .pathology-card .pc-remove:hover { background: var(--danger); color: #fff; }
+        .pathology-card .pc-organs { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; }
+        .pathology-card .pc-organs span { display: inline-block; background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin: 2px; }
+        .pathology-card .pc-params { font-size: 0.75rem; margin-bottom: 6px; }
+        .pathology-card .pc-params .param-tag { display: inline-block; padding: 3px 8px; border-radius: 6px; margin: 2px; font-weight: 600; }
+        .pathology-card .pc-params .param-tag.size { background: #e0f2fe; color: #0369a1; }
+        .pathology-card .pc-desc { font-size: 0.82rem; color: var(--text); line-height: 1.5; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
+        .final-protocol { width: 100%; min-height: 220px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; line-height: 1.7; font-family: 'Segoe UI', monospace; background: #fafcff; color: var(--text); resize: vertical; margin-top: 12px; }
+        .final-protocol:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.15); }
+        .status-bar { margin-top: 24px; padding: 12px 20px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: #fff; padding: 12px 24px; border-radius: 10px; box-shadow: var(--shadow); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; z-index: 10001; font-size: 0.9rem; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        @media (max-width: 700px) { body { padding: 12px; } .header { flex-direction: column; align-items: stretch; } .toolbar { justify-content: stretch; } .toolbar button { flex: 1; justify-content: center; font-size: 0.7rem; padding: 6px 10px; } .card-body { max-height: 500px; padding: 12px; } }
+        @media print { .toolbar, .status-bar, .modal-overlay, .add-pathology-panel { display: none !important; } }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div>
+        <h1>🫁 <span>Селезёнка</span></h1>
+        <span class="badge">КТ диагностика</span>
+    </div>
+    <div class="toolbar">
+        <button class="success" onclick="resetAll()">🔄 Сбросить</button>
+        <button class="primary" onclick="generateFinalProtocol()">📋 Итоговый протокол</button>
+        <button onclick="copyToClipboard()">📋 Копировать</button>
+        <button onclick="window.print()">🖨 Печать</button>
+        <button class="success" onclick="sendToParent()" style="background:linear-gradient(135deg,#22c55e,#16a34a);">📥 Вставить в КТ-Журнал</button>
+    </div>
+</header>
+
+<div class="main-grid">
+    <div class="card">
+        <div class="card-header">
+            <span>📍 Анатомия (кликни на зону)</span>
+            <span class="count" id="organsCount">Выбрано: 0</span>
+        </div>
+        <div class="card-body">
+            <div class="diagrams-container">
+                <div class="diagram-section">
+                    <div class="diagram-title"><span class="badge">1</span><span>Селезёнка (зоны)</span></div>
+                    <svg viewBox="0 0 700 450" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Общий контур селезёнки -->
+                        <path d="M150 100 Q200 70 300 80 Q420 90 500 140 Q560 180 580 240 Q590 300 550 340 Q500 380 420 390 Q320 400 240 380 Q170 360 140 310 Q110 260 115 200 Q120 140 150 100 Z" 
+                              fill="#fecaca" stroke="#1e293b" stroke-width="2" opacity="0.4"/>
+                        <text class="organ-label" x="320" y="240" style="font-size:14px; fill:#991b1b; opacity:0.5;">СЕЛЕЗЁНКА</text>
+
+                        <!-- Верхний полюс -->
+                        <path class="organ" data-organ="upper_pole" 
+                              d="M150 100 Q200 70 300 80 Q380 88 430 110 Q420 140 380 160 Q300 180 220 170 Q170 160 150 130 Q145 115 150 100 Z" 
+                              fill="#fca5a5" stroke="#1e293b" stroke-width="1.5"/>
+                        <text class="organ-label" x="270" y="130">Верхний полюс</text>
+
+                        <!-- Нижний полюс -->
+                        <path class="organ" data-organ="lower_pole" 
+                              d="M140 310 Q170 360 240 380 Q320 400 420 390 Q490 380 540 340 Q520 370 460 385 Q360 400 260 385 Q180 365 145 320 Q138 315 140 310 Z" 
+                              fill="#f87171" stroke="#1e293b" stroke-width="1.5"/>
+                        <text class="organ-label" x="310" y="370">Нижний полюс</text>
+
+                        <!-- Ворота селезёнки (hilum) - медиальная часть -->
+                        <path class="organ" data-organ="hilum" 
+                              d="M430 110 Q470 130 500 140 Q560 180 580 240 Q590 300 550 340 Q520 350 490 330 Q470 280 460 230 Q455 180 440 150 Q435 130 430 110 Z" 
+                              fill="#ef4444" stroke="#1e293b" stroke-width="1.5"/>
+                        <text class="organ-label" x="475" y="235">Ворота</text>
+                        <text class="organ-label-small" x="475" y="250">(hilum)</text>
+
+                        <!-- Центральная паренхима -->
+                        <path class="organ" data-organ="parenchyma" 
+                              d="M220 170 Q300 180 380 160 Q420 140 430 110 Q435 130 440 150 Q455 180 460 230 Q470 280 490 330 Q460 380 420 390 Q320 400 240 380 Q200 360 180 320 Q170 270 175 220 Q180 190 220 170 Z" 
+                              fill="#fca5a5" stroke="#1e293b" stroke-width="1.5"/>
+                        <text class="organ-label" x="310" y="270">Паренхима</text>
+                        <text class="organ-label-small" x="310" y="285">(центральная часть)</text>
+
+                        <!-- Сосуды в воротах (схематично) -->
+                        <path d="M470 230 Q450 230 430 225 Q410 220 390 215" fill="none" stroke="#dc2626" stroke-width="2" opacity="0.7" pointer-events="none"/>
+                        <path d="M470 235 Q450 240 430 245 Q410 250 390 255" fill="none" stroke="#2563eb" stroke-width="2" opacity="0.7" pointer-events="none"/>
+                        <text class="organ-label-small" x="395" y="208" fill="#dc2626">Селезёночная артерия</text>
+                        <text class="organ-label-small" x="395" y="270" fill="#2563eb">Селезёночная вена</text>
+
+                        <!-- Легенда -->
+                        <rect x="20" y="20" width="14" height="14" fill="#fca5a5" rx="2" stroke="#1e293b" stroke-width="1"/>
+                        <text x="40" y="31" font-size="9" fill="#64748b">Верхний полюс</text>
+                        <rect x="20" y="40" width="14" height="14" fill="#f87171" rx="2" stroke="#1e293b" stroke-width="1"/>
+                        <text x="40" y="51" font-size="9" fill="#64748b">Нижний полюс</text>
+                        <rect x="20" y="60" width="14" height="14" fill="#ef4444" rx="2" stroke="#1e293b" stroke-width="1"/>
+                        <text x="40" y="71" font-size="9" fill="#64748b">Ворота (hilum)</text>
+                        <rect x="20" y="80" width="14" height="14" fill="#fca5a5" rx="2" stroke="#1e293b" stroke-width="1"/>
+                        <text x="40" y="91" font-size="9" fill="#64748b">Паренхима (центр)</text>
+
+                        <!-- Нормальные размеры -->
+                        <text class="organ-label-small" x="20" y="420" fill="#64748b">Норма: длина до 12 см, ширина до 7-8 см</text>
+                    </svg>
+                </div>
+
+                <div class="add-pathology-panel" id="addPanel">
+                    <div class="panel-title">🎯 Выбранные зоны:</div>
+                    <div class="selected-list" id="selectedList"></div>
+                    <div class="panel-buttons">
+                        <button class="btn-add" onclick="openPathologyTypeModal()">➕ Добавить патологию</button>
+                        <button class="btn-clear" onclick="clearSelection()">Очистить выбор</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span>📝 Описания патологий и протокол</span>
+            <span class="count" id="pathologyCount">Патологий: 0</span>
+        </div>
+        <div class="card-body">
+            <div class="protocol-section">
+                <div class="protocol-section-title">🎯 Добавленные патологии</div>
+                <div id="pathologiesContainer">
+                    <div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Выбери зоны слева и нажми "Добавить патологию"</div>
+                </div>
+            </div>
+            <div class="protocol-section" style="margin-top: 20px;">
+                <div class="protocol-section-title">📋 Итоговый протокол</div>
+                <textarea class="final-protocol" id="finalProtocol">СЕЛЁЗЁНКА:
+  Селезёнка обычных размеров (длина до 12 см, ширина до 7-8 см).
+  Контуры ровные, чёткие.
+  Паренхима однородной структуры, плотность не снижена.
+  Селезёночные сосуды проходимы.
+  Очаговых образований не выявлено.
+  Периселезёночная клетчатка не изменена.
+
+ЗАКЛЮЧЕНИЕ:
+  Патологических изменений селезёнки не выявлено.</textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="typeModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Выбери тип патологии</h2>
+            <button class="modal-close" onclick="closeTypeModal()">×</button>
+        </div>
+        <div class="pathology-type-list" id="typeList"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="paramModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="paramModalTitle">Параметры</h2>
+            <button class="modal-close" onclick="closeParamModal()">×</button>
+        </div>
+        <div class="param-form" id="paramForm"></div>
+    </div>
+</div>
+
+<div class="status-bar">
+    <span>💡 <span id="statusMessage">Кликай на зоны для выбора</span></span>
+    <span>📌 <span id="statusCount">Зон: 0 | Патологий: 0</span></span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+    'use strict';
+
+    var organNames = {
+        upper_pole: 'верхний полюс',
+        lower_pole: 'нижний полюс',
+        hilum: 'ворота селезёнки (hilum)',
+        parenchyma: 'паренхима (центральная часть)'
+    };
+
+    var pathologyTypes = [
+        { id: 'cyst', name: '🟡 Киста', color: '#f59e0b', category: 'cyst' },
+        { id: 'infarct', name: '🔴 Инфаркт селезёнки', color: '#dc2626', category: 'trauma' },
+        { id: 'hematoma', name: '🔴 Гематома', color: '#dc2626', category: 'trauma' },
+        { id: 'rupture', name: '🔴 Разрыв селезёнки', color: '#dc2626', category: 'trauma' },
+        { id: 'tumor', name: '🟣 Опухоль', color: '#7c3aed', category: 'tumor' },
+        { id: 'lymphoma', name: '🟣 Лимфома', color: '#7c3aed', category: 'tumor' },
+        { id: 'metastasis', name: '🟣 Метастаз', color: '#7c3aed', category: 'tumor' },
+        { id: 'abscess', name: '🔥 Абсцесс', color: '#ef4444', category: 'inflammation' },
+        { id: 'splenomegaly', name: '🔵 Спленомегалия', color: '#3b82f6', category: 'inflammation' },
+        { id: 'calcification', name: '⚪ Кальцинаты', color: '#6b7280', category: 'inflammation' }
+    ];
+
+    var state = {
+        selectedOrgans: [],
+        pathologies: [],
+        currentTypeId: null
+    };
+
+    var organs = document.querySelectorAll('.organ');
+    var organsCount = document.getElementById('organsCount');
+    var pathologyCount = document.getElementById('pathologyCount');
+    var statusMessage = document.getElementById('statusMessage');
+    var statusCount = document.getElementById('statusCount');
+    var toast = document.getElementById('toast');
+    var addPanel = document.getElementById('addPanel');
+    var selectedList = document.getElementById('selectedList');
+    var pathologiesContainer = document.getElementById('pathologiesContainer');
+    var finalProtocol = document.getElementById('finalProtocol');
+    var typeModal = document.getElementById('typeModal');
+    var paramModal = document.getElementById('paramModal');
+
+    function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    }
+
+    function log(msg) {
+        console.log('[Селезёнка] ' + msg);
+    }
+
+    organs.forEach(function(organ) {
+        organ.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var organId = this.getAttribute('data-organ');
+            if (!organId) return;
+            var idx = state.selectedOrgans.indexOf(organId);
+            if (idx >= 0) {
+                state.selectedOrgans.splice(idx, 1);
+                this.classList.remove('selected');
+            } else {
+                state.selectedOrgans.push(organId);
+                this.classList.add('selected');
+            }
+            updateSelectionUI();
+        });
+    });
+
+    function updateSelectionUI() {
+        organsCount.textContent = 'Выбрано: ' + state.selectedOrgans.length;
+        statusCount.textContent = 'Зон: ' + state.selectedOrgans.length + ' | Патологий: ' + state.pathologies.length;
+        if (state.selectedOrgans.length > 0) {
+            addPanel.classList.add('show');
+            var html = '';
+            for (var i = 0; i < state.selectedOrgans.length; i++) {
+                html += '<span>' + organNames[state.selectedOrgans[i]] + '</span>';
+            }
+            selectedList.innerHTML = html;
+        } else {
+            addPanel.classList.remove('show');
+        }
+    }
+
+    window.clearSelection = function() {
+        for (var i = 0; i < state.selectedOrgans.length; i++) {
+            var oid = state.selectedOrgans[i];
+            for (var j = 0; j < organs.length; j++) {
+                if (organs[j].getAttribute('data-organ') === oid) {
+                    organs[j].classList.remove('selected');
+                }
+            }
+        }
+        state.selectedOrgans = [];
+        updateSelectionUI();
+    };
+
+    window.openPathologyTypeModal = function() {
+        if (state.selectedOrgans.length === 0) {
+            showToast('⚠️ Сначала выбери зоны');
+            return;
+        }
+        var typeList = document.getElementById('typeList');
+        typeList.innerHTML = '';
+        for (var i = 0; i < pathologyTypes.length; i++) {
+            var type = pathologyTypes[i];
+            var item = document.createElement('div');
+            item.className = 'pathology-type-item';
+            item.innerHTML = '<span class="color-dot" style="background:' + type.color + ';"></span><span>' + type.name + '</span>';
+            (function(t) {
+                item.addEventListener('click', function() {
+                    closeTypeModal();
+                    openParamModal(t.id);
+                });
+            })(type);
+            typeList.appendChild(item);
+        }
+        typeModal.classList.add('show');
+    };
+
+    window.closeTypeModal = function() {
+        typeModal.classList.remove('show');
+    };
+
+    function getVal(id) {
+        var el = document.getElementById(id);
+        return el ? el.value : '';
+    }
+    function getNum(id) {
+        var v = getVal(id);
+        return v === '' ? NaN : parseFloat(v);
+    }
+    function getInt(id) {
+        var v = getVal(id);
+        return v === '' ? NaN : parseInt(v, 10);
+    }
+
+    function openParamModal(typeId) {
+        state.currentTypeId = typeId;
+        var type = null;
+        for (var i = 0; i < pathologyTypes.length; i++) {
+            if (pathologyTypes[i].id === typeId) { type = pathologyTypes[i]; break; }
+        }
+        document.getElementById('paramModalTitle').textContent = 'Параметры: ' + type.name;
+        var form = document.getElementById('paramForm');
+        var html = '';
+
+        if (typeId === 'cyst') {
+            html += '<div class="form-group"><label>Количество:</label><input type="number" id="paramCount" placeholder="Введите число" min="1" step="1"/></div>';
+            html += '<div class="form-group"><label>Размеры (мм):</label><div class="form-row"><input type="number" id="paramSize1" placeholder="Длина" step="1"/><input type="number" id="paramSize2" placeholder="Ширина" step="1"/></div></div>';
+            html += '<div class="form-group"><label>Тип кисты:</label><select id="paramCystType"><option value="простая">Простая (серозная)</option><option value="посттравматическая">Посттравматическая</option><option value="паразитарная (эхинококк)">Паразитарная (эхинококк)</option><option value="псевдокиста">Псевдокиста</option></select></div>';
+            html += '<div class="form-group"><label>Плотность (HU):</label><input type="number" id="paramDensity" placeholder="например, 10" step="1"/><div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Простая: 0-20 HU</div></div>';
+        } else if (typeId === 'infarct') {
+            html += '<div class="form-group"><label>Размеры зоны инфаркта (мм):</label><div class="form-row"><input type="number" id="paramSize1" placeholder="Длина" step="1"/><input type="number" id="paramSize2" placeholder="Ширина" step="1"/></div></div>';
+            html += '<div class="form-group"><label>Форма:</label><select id="paramShape"><option value="клиновидная">Клиновидная (типичная)</option><option value="округлая">Округлая</option><option value="неправильная">Неправильная</option></select></div>';
+            html += '<div class="form-group"><label>Локализация:</label><select id="paramLocation"><option value="субкапсулярно">Субкапсулярно</option><option value="в паренхиме">В паренхиме</option><option value="у ворот">У ворот</option></select></div>';
+        } else if (typeId === 'hematoma') {
+            html += '<div class="form-group"><label>Размеры гематомы (мм):</label><div class="form-row"><input type="number" id="paramSize1" placeholder="Длина" step="1"/><input type="number" id="paramSize2" placeholder="Ширина" step="1"/></div></div>';
+            html += '<div class="form-group"><label>Тип гематомы:</label><select id="paramHematomaType"><option value="субкапсулярная">Субкапсулярная</option><option value="паренхиматозная">Паренхиматозная (внутриорганная)</option><option value="подкапсулярная">Подкапсулярная</option></select></div>';
+            html += '<div class="form-group"><label>Плотность (HU):</label><input type="number" id="paramDensity" placeholder="например, 60" step="1"/><div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Свежая кровь: +40-+70 HU</div></div>';
+        } else if (typeId === 'rupture') {
+            html += '<div class="form-group"><label>Степень разрыва (по AAST):</label><select id="paramGrade"><option value="I">I — поверхностная надрыв капсулы</option><option value="II">II — разрыв капсулы до 1 см</option><option value="III">III — разрыв капсулы >1 см</option><option value="IV">IV — разрыв с вовлечением сосудов</option><option value="V">V — полное размозжение</option></select></div>';
+            html += '<div class="form-group"><label>Свободная жидкость в брюшной полости:</label><select id="paramFreeFluid"><option value="нет">Нет</option><option value="умеренное количество">Умеренное количество</option><option value="большое количество">Большое количество</option></select></div>';
+        } else if (typeId === 'tumor' || typeId === 'lymphoma' || typeId === 'metastasis') {
+            html += '<div class="form-group"><label>Количество образований:</label><input type="number" id="paramCount" placeholder="Введите число" min="1" step="1"/></div>';
+            html += '<div class="form-group"><label>Размеры (мм):</label><div class="form-row"><input type="number" id="paramSize1" placeholder="Длина" step="1"/><input type="number" id="paramSize2" placeholder="Ширина" step="1"/></div></div>';
+            if (typeId === 'tumor') {
+                html += '<div class="form-group"><label>Тип опухоли:</label><select id="paramTumorType"><option value="гемангиома">Гемангиома</option><option value="лимфангиома">Лимфангиома</option><option value="гамартома">Гамартома</option><option value="другое">Другое</option></select></div>';
+            } else if (typeId === 'lymphoma') {
+                html += '<div class="form-group"><label>Тип поражения:</label><select id="paramLymphomaType"><option value="очаговое">Очаговое (одно/несколько образований)</option><option value="диффузное">Диффузное (увеличение селезёнки)</option><option value="милиарное">Милиарное (множественные мелкие очаги)</option></select></div>';
+            } else {
+                html += '<div class="form-group"><label>Первичная опухоль (если известна):</label><input type="text" id="paramPrimaryTumor" placeholder="например, меланома, РМЖ"/></div>';
+            }
+        } else if (typeId === 'abscess') {
+            html += '<div class="form-group"><label>Размеры абсцесса (мм):</label><div class="form-row"><input type="number" id="paramSize1" placeholder="Длина" step="1"/><input type="number" id="paramSize2" placeholder="Ширина" step="1"/></div></div>';
+            html += '<div class="form-group"><label>Количество:</label><input type="number" id="paramCount" placeholder="Введите число" min="1" step="1"/></div>';
+            html += '<div class="form-group"><label>Признаки:</label><select id="paramSigns" multiple style="min-height:80px;"><option value="капсула">Капсула (кольцо накопления контраста)</option><option value="газ">Газ в полости</option><option value="периспленит">Периспленит (воспаление вокруг)</option><option value="жидкость в брюшной полости">Жидкость в брюшной полости</option></select></div>';
+        } else if (typeId === 'splenomegaly') {
+            html += '<div class="form-group"><label>Размеры селезёнки (см):</label><div class="form-row"><input type="number" id="paramLength" placeholder="Длина" step="0.1"/><input type="number" id="paramWidth" placeholder="Ширина" step="0.1"/></div><div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Норма: длина до 12 см, ширина до 7-8 см</div></div>';
+            html += '<div class="form-group"><label>Структура паренхимы:</label><select id="paramStructure"><option value="однородная">Однородная</option><option value="неоднородная">Неоднородная</option><option value="с очагами">С очаговыми образованиями</option></select></div>';
+        } else if (typeId === 'calcification') {
+            html += '<div class="form-group"><label>Характер кальцинатов:</label><select id="paramCalcType"><option value="единичные мелкие">Единичные мелкие</option><option value="множественные мелкие">Множественные мелкие</option><option value="крупные">Крупные</option><option value="периферические (обызвествление капсулы)">Периферические (обызвествление капсулы)</option></select></div>';
+            html += '<div class="form-group"><label>Плотность (HU):</label><input type="number" id="paramDensity" placeholder="например, 800" step="10"/><div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Кальцинаты: >300 HU</div></div>';
+        }
+
+        html += '<div class="form-group"><label>Дополнительное описание:</label><textarea id="paramExtra" placeholder="Дополнительные детали..."></textarea></div>';
+        html += '<div class="form-buttons"><button class="btn-save" onclick="savePathology()">✅ Сохранить</button><button class="btn-cancel" onclick="closeParamModal()">Отмена</button></div>';
+        form.innerHTML = html;
+        paramModal.classList.add('show');
+    }
+
+    window.closeParamModal = function() {
+        paramModal.classList.remove('show');
+        state.currentTypeId = null;
+    };
+
+    window.savePathology = function() {
+        var typeId = state.currentTypeId;
+        var type = null;
+        for (var i = 0; i < pathologyTypes.length; i++) {
+            if (pathologyTypes[i].id === typeId) { type = pathologyTypes[i]; break; }
+        }
+        var selected = state.selectedOrgans.slice();
+        if (selected.length === 0) {
+            showToast('⚠️ Нет выбранных зон');
+            return;
+        }
+
+        var params = {};
+        log('Сохраняем патологию типа: ' + typeId);
+
+        if (typeId === 'cyst') {
+            params.count = getInt('paramCount');
+            params.size1 = getNum('paramSize1');
+            params.size2 = getNum('paramSize2');
+            params.cystType = getVal('paramCystType');
+            params.density = getInt('paramDensity');
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.count) || params.count < 1) { showToast('⚠️ Укажи количество'); return; }
+            if (isNaN(params.size1) || isNaN(params.size2)) { showToast('⚠️ Укажи размеры'); return; }
+        } else if (typeId === 'infarct') {
+            params.size1 = getNum('paramSize1');
+            params.size2 = getNum('paramSize2');
+            params.shape = getVal('paramShape');
+            params.location = getVal('paramLocation');
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.size1) || isNaN(params.size2)) { showToast('⚠️ Укажи размеры'); return; }
+        } else if (typeId === 'hematoma') {
+            params.size1 = getNum('paramSize1');
+            params.size2 = getNum('paramSize2');
+            params.hematomaType = getVal('paramHematomaType');
+            params.density = getInt('paramDensity');
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.size1) || isNaN(params.size2)) { showToast('⚠️ Укажи размеры'); return; }
+        } else if (typeId === 'rupture') {
+            params.grade = getVal('paramGrade');
+            params.freeFluid = getVal('paramFreeFluid');
+            params.extra = getVal('paramExtra');
+        } else if (typeId === 'tumor' || typeId === 'lymphoma' || typeId === 'metastasis') {
+            params.count = getInt('paramCount');
+            params.size1 = getNum('paramSize1');
+            params.size2 = getNum('paramSize2');
+            params.extra = getVal('paramExtra');
+            if (typeId === 'tumor') params.tumorType = getVal('paramTumorType');
+            else if (typeId === 'lymphoma') params.lymphomaType = getVal('paramLymphomaType');
+            else params.primaryTumor = getVal('paramPrimaryTumor');
+            if (isNaN(params.count) || params.count < 1) { showToast('⚠️ Укажи количество'); return; }
+            if (isNaN(params.size1) || isNaN(params.size2)) { showToast('⚠️ Укажи размеры'); return; }
+        } else if (typeId === 'abscess') {
+            params.size1 = getNum('paramSize1');
+            params.size2 = getNum('paramSize2');
+            params.count = getInt('paramCount');
+            var signsEl = document.getElementById('paramSigns');
+            params.signs = [];
+            if (signsEl) {
+                for (var i = 0; i < signsEl.options.length; i++) {
+                    if (signsEl.options[i].selected) params.signs.push(signsEl.options[i].value);
+                }
+            }
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.size1) || isNaN(params.size2)) { showToast('⚠️ Укажи размеры'); return; }
+        } else if (typeId === 'splenomegaly') {
+            params.length = getNum('paramLength');
+            params.width = getNum('paramWidth');
+            params.structure = getVal('paramStructure');
+            params.extra = getVal('paramExtra');
+            if (isNaN(params.length) || isNaN(params.width)) { showToast('⚠️ Укажи размеры'); return; }
+        } else if (typeId === 'calcification') {
+            params.calcType = getVal('paramCalcType');
+            params.density = getInt('paramDensity');
+            params.extra = getVal('paramExtra');
+        }
+
+        var pathology = {
+            id: 'path_' + Date.now(),
+            type: type,
+            organs: selected,
+            params: params
+        };
+
+        state.pathologies.push(pathology);
+        log('Добавлено патологий: ' + state.pathologies.length);
+
+        for (var i = 0; i < selected.length; i++) {
+            var oid = selected[i];
+            for (var j = 0; j < organs.length; j++) {
+                if (organs[j].getAttribute('data-organ') === oid) {
+                    organs[j].classList.add('has-pathology');
+                }
+            }
+        }
+
+        clearSelection();
+        closeParamModal();
+        updatePathologiesUI();
+        updateFinalProtocol();
+        showToast('✅ Патология добавлена: ' + type.name);
+    };
+
+    function updatePathologiesUI() {
+        pathologyCount.textContent = 'Патологий: ' + state.pathologies.length;
+        statusCount.textContent = 'Зон: ' + state.selectedOrgans.length + ' | Патологий: ' + state.pathologies.length;
+
+        if (state.pathologies.length === 0) {
+            pathologiesContainer.innerHTML = '<div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Выбери зоны слева и нажми "Добавить патологию"</div>';
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < state.pathologies.length; i++) {
+            var p = state.pathologies[i];
+            var params = p.params || {};
+            html += '<div class="pathology-card ' + p.type.category + '-card">';
+            html += '<div class="pc-header"><div class="pc-title"><span class="color-dot" style="background:' + p.type.color + '; width:12px; height:12px; border-radius:50%; display:inline-block;"></span>' + p.type.name + '</div>';
+            html += '<button class="pc-remove" onclick="removePathology(' + i + ')" title="Удалить">×</button></div>';
+            html += '<div class="pc-organs">';
+            for (var j = 0; j < p.organs.length; j++) {
+                html += '<span>' + organNames[p.organs[j]] + '</span>';
+            }
+            html += '</div>';
+            html += '<div class="pc-params">';
+
+            if (p.type.id === 'cyst') {
+                html += '<span class="param-tag size">📏 ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм</span>';
+                html += '<span class="param-tag">🔢 ' + (params.count || 1) + ' шт</span>';
+                html += '<span class="param-tag">🔍 ' + (params.cystType || 'неизвестно') + '</span>';
+            } else if (p.type.id === 'infarct') {
+                html += '<span class="param-tag size">📏 ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм</span>';
+                html += '<span class="param-tag">🔺 ' + (params.shape || 'неизвестно') + '</span>';
+            } else if (p.type.id === 'hematoma') {
+                html += '<span class="param-tag size">📏 ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм</span>';
+                html += '<span class="param-tag">🔍 ' + (params.hematomaType || 'неизвестно') + '</span>';
+            } else if (p.type.id === 'rupture') {
+                html += '<span class="param-tag">📐 Степень ' + (params.grade || '?') + ' по AAST</span>';
+                if (params.freeFluid && params.freeFluid !== 'нет') html += '<span class="param-tag">💧 ' + params.freeFluid + '</span>';
+            } else if (p.type.id === 'tumor' || p.type.id === 'lymphoma' || p.type.id === 'metastasis') {
+                html += '<span class="param-tag size">📏 ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм</span>';
+                html += '<span class="param-tag">🔢 ' + (params.count || 1) + ' шт</span>';
+            } else if (p.type.id === 'abscess') {
+                html += '<span class="param-tag size">📏 ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм</span>';
+                html += '<span class="param-tag">🔢 ' + (params.count || 1) + ' шт</span>';
+            } else if (p.type.id === 'splenomegaly') {
+                html += '<span class="param-tag size">📏 ' + (params.length || 0) + '×' + (params.width || 0) + ' см</span>';
+                html += '<span class="param-tag">🔍 ' + (params.structure || 'неизвестно') + '</span>';
+            } else if (p.type.id === 'calcification') {
+                html += '<span class="param-tag">⚪ ' + (params.calcType || 'неизвестно') + '</span>';
+            }
+            html += '</div>';
+            html += '<div class="pc-desc">' + generateDescription(p) + '</div>';
+            html += '</div>';
+        }
+        pathologiesContainer.innerHTML = html;
+    }
+
+    function generateDescription(p) {
+        if (!p || !p.params) return 'Описание недоступно';
+        var params = p.params;
+        var desc = '';
+
+        if (p.type.id === 'cyst') {
+            var count = params.count || 1;
+            var word = count === 1 ? 'киста' : (count < 5 ? 'кисты' : 'кист');
+            desc = count + ' ' + word + ' размерами ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм, тип: ' + (params.cystType || 'неизвестный') + '.';
+            if (params.density) desc += ' Плотность ' + params.density + ' HU.';
+        } else if (p.type.id === 'infarct') {
+            desc = 'Зона инфаркта ' + (params.shape || 'клиновидной') + ' формы размерами ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм';
+            if (params.location) desc += ', локализация: ' + params.location;
+            desc += '. Характерна гиподенсная зона без накопления контраста, основанием к капсуле, вершиной к воротам.';
+        } else if (p.type.id === 'hematoma') {
+            desc = (params.hematomaType || 'Гематома') + ' размерами ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм';
+            if (params.density) desc += ', плотность ' + params.density + ' HU';
+            desc += '.';
+        } else if (p.type.id === 'rupture') {
+            desc = 'Разрыв селезёнки, степень ' + (params.grade || '?') + ' по классификации AAST.';
+            if (params.freeFluid && params.freeFluid !== 'нет') {
+                desc += ' Определяется ' + params.freeFluid + ' свободной жидкости в брюшной полости.';
+            }
+        } else if (p.type.id === 'tumor') {
+            var count = params.count || 1;
+            var word = count === 1 ? 'образование' : (count < 5 ? 'образования' : 'образований');
+            desc = count + ' ' + word + ' размерами ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм, предположительно ' + (params.tumorType || 'опухоль') + '.';
+        } else if (p.type.id === 'lymphoma') {
+            var count = params.count || 1;
+            desc = 'Лимфоматозное поражение (' + (params.lymphomaType || 'очаговое') + ').';
+            if (count > 1) desc += ' Количество очагов: ' + count + '.';
+            desc += ' Размеры наибольшего очага: ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм.';
+        } else if (p.type.id === 'metastasis') {
+            var count = params.count || 1;
+            var word = count === 1 ? 'метастаз' : (count < 5 ? 'метастаза' : 'метастазов');
+            desc = count + ' ' + word + ' размерами ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм';
+            if (params.primaryTumor) desc += ' (первичная опухоль: ' + params.primaryTumor + ')';
+            desc += '.';
+        } else if (p.type.id === 'abscess') {
+            var count = params.count || 1;
+            var word = count === 1 ? 'абсцесс' : (count < 5 ? 'абсцесса' : 'абсцессов');
+            desc = count + ' ' + word + ' размерами ' + (params.size1 || 0) + '×' + (params.size2 || 0) + ' мм.';
+            if (params.signs && params.signs.length > 0) {
+                desc += ' Признаки: ' + params.signs.join(', ') + '.';
+            }
+        } else if (p.type.id === 'splenomegaly') {
+            desc = 'Спленомегалия: размеры селезёнки ' + (params.length || 0) + '×' + (params.width || 0) + ' см (норма: до 12×7-8 см).';
+            desc += ' Структура паренхимы: ' + (params.structure || 'неизвестно') + '.';
+        } else if (p.type.id === 'calcification') {
+            desc = (params.calcType || 'Кальцинаты') + '.';
+            if (params.density) desc += ' Плотность ' + params.density + ' HU.';
+        } else {
+            desc = 'Патология: ' + p.type.name + '.';
+        }
+
+        if (params.extra) {
+            desc += ' ' + params.extra;
+        }
+        return desc;
+    }
+
+    function updateFinalProtocol() {
+        log('updateFinalProtocol вызван. Патологий: ' + state.pathologies.length);
+        try {
+            var text = '';
+            var upperPole = [];
+            var lowerPole = [];
+            var hilum = [];
+            var parenchyma = [];
+            var diffuse = [];
+
+            for (var i = 0; i < state.pathologies.length; i++) {
+                var p = state.pathologies[i];
+                if (!p || !p.organs) continue;
+                for (var j = 0; j < p.organs.length; j++) {
+                    var organId = p.organs[j];
+                    var entry = { organId: organId, organName: organNames[organId], pathology: p };
+                    if (organId === 'upper_pole') upperPole.push(entry);
+                    else if (organId === 'lower_pole') lowerPole.push(entry);
+                    else if (organId === 'hilum') hilum.push(entry);
+                    else if (organId === 'parenchyma') parenchyma.push(entry);
+                }
+                if (p.type.id === 'splenomegaly') {
+                    diffuse.push(p);
+                }
+            }
+
+            text += 'СЕЛЁЗЁНКА:\n';
+            
+            if (diffuse.length > 0) {
+                for (var i = 0; i < diffuse.length; i++) {
+                    text += '  ' + generateDescription(diffuse[i]) + '\n';
+                }
+            } else {
+                text += '  Селезёнка обычных размеров (длина до 12 см, ширина до 7-8 см).\n';
+                text += '  Контуры ровные, чёткие.\n';
+            }
+
+            if (parenchyma.length === 0 && upperPole.length === 0 && lowerPole.length === 0 && hilum.length === 0 && diffuse.length === 0) {
+                text += '  Паренхима однородной структуры, плотность не снижена.\n';
+                text += '  Селезёночные сосуды проходимы.\n';
+                text += '  Очаговых образований не выявлено.\n';
+            } else {
+                if (parenchyma.length > 0) {
+                    text += '  В паренхиме (центральной части):\n';
+                    for (var i = 0; i < parenchyma.length; i++) {
+                        text += '    - ' + generateDescription(parenchyma[i].pathology) + '\n';
+                    }
+                }
+                if (upperPole.length > 0) {
+                    text += '  В верхнем полюсе:\n';
+                    for (var i = 0; i < upperPole.length; i++) {
+                        text += '    - ' + generateDescription(upperPole[i].pathology) + '\n';
+                    }
+                }
+                if (lowerPole.length > 0) {
+                    text += '  В нижнем полюсе:\n';
+                    for (var i = 0; i < lowerPole.length; i++) {
+                        text += '    - ' + generateDescription(lowerPole[i].pathology) + '\n';
+                    }
+                }
+                if (hilum.length > 0) {
+                    text += '  В области ворот (hilum):\n';
+                    for (var i = 0; i < hilum.length; i++) {
+                        text += '    - ' + generateDescription(hilum[i].pathology) + '\n';
+                    }
+                }
+                text += '  Селезёночные сосуды: ' + (hilum.length > 0 ? 'требуют оценки проходимости' : 'проходимы') + '.\n';
+            }
+            text += '  Периселезёночная клетчатка не изменена.\n\n';
+
+            text += 'ЗАКЛЮЧЕНИЕ:\n';
+            if (state.pathologies.length === 0) {
+                text += '  Патологических изменений селезёнки не выявлено.\n';
+            } else {
+                var conclusions = [];
+                for (var i = 0; i < state.pathologies.length; i++) {
+                    var p = state.pathologies[i];
+                    var organsStr = '';
+                    for (var j = 0; j < p.organs.length; j++) {
+                        if (j > 0) organsStr += ', ';
+                        organsStr += organNames[p.organs[j]];
+                    }
+                    conclusions.push(p.type.name + ' (' + organsStr + '): ' + generateDescription(p));
+                }
+                text += '  ' + conclusions.join('; ') + '.\n';
+                text += '  Рекомендовано: консультация хирурга/гематолога/онколога (в зависимости от характера патологии).\n';
+            }
+
+            finalProtocol.value = text;
+            log('Протокол успешно обновлен');
+        } catch (error) {
+            console.error('[Селезёнка] Ошибка в updateFinalProtocol:', error);
+            showToast('⚠️ Ошибка: ' + error.message);
+        }
+    }
+
+    window.removePathology = function(index) {
+        state.pathologies.splice(index, 1);
+        updatePathologiesUI();
+        updateFinalProtocol();
+        showToast('🗑 Патология удалена');
+    };
+
+    window.generateFinalProtocol = function() {
+        updateFinalProtocol();
+        showToast('📋 Протокол сформирован');
+        finalProtocol.focus();
+        finalProtocol.select();
+    };
+
+    window.copyToClipboard = function() {
+        finalProtocol.select();
+        document.execCommand('copy');
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(finalProtocol.value).then(function() {
+                showToast('✅ Скопировано!');
+            }).catch(function() {
+                showToast('✅ Скопировано!');
+            });
+        } else {
+            showToast('✅ Скопировано!');
+        }
+    };
+
+    window.resetAll = function() {
+        if (!confirm('Очистить всё?')) return;
+        state.selectedOrgans = [];
+        state.pathologies = [];
+        for (var i = 0; i < organs.length; i++) {
+            organs[i].classList.remove('selected', 'has-pathology');
+        }
+        updateSelectionUI();
+        updatePathologiesUI();
+        updateFinalProtocol();
+        showToast('🔄 Сброшено');
+    };
+
+    typeModal.addEventListener('click', function(e) {
+        if (e.target === typeModal) closeTypeModal();
+    });
+    paramModal.addEventListener('click', function(e) {
+        if (e.target === paramModal) closeParamModal();
+    });
+
+    updateSelectionUI();
+    updatePathologiesUI();
+    updateFinalProtocol();
+
+    log('Инициализация завершена');
+})();
+
+// ============================================================
+// ОТПРАВКА РЕЗУЛЬТАТА В РОДИТЕЛЬСКОЕ ОКНО (КТ-Журнал)
+// ============================================================
+function sendToParent() {
+    let text = '';
+
+    const finalEl = document.getElementById('finalProtocol');
+    if (finalEl) {
+        text = finalEl.value || finalEl.textContent || '';
+    }
+
+    const aspectEl = document.getElementById('protocol-text');
+    if (!text && aspectEl) {
+        text = aspectEl.textContent || '';
+    }
+
+    if (!text.trim()) {
+        alert('⚠️ Сначала сформируйте протокол (нажмите «📋 Итоговый протокол»)');
+        return;
+    }
+
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+            type: 'widget-result',
+            text: text
+        }, '*');
+    } else {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Протокол скопирован в буфер обмена');
+            }).catch(() => {
+                alert('⚠️ Не удалось скопировать');
+            });
+        } else {
+            alert('✅ Протокол готов: ' + text.substring(0, 100) + '...');
+        }
+    }
+}
+</script>
+
+</body>
+</html>

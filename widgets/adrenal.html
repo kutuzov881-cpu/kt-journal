@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Надпочечники — КТ диагностика</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --border: #cbd5e1;
+            --text: #0f172a;
+            --muted: #64748b;
+            --primary: #0ea5e9;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --radius: 16px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--card);
+            padding: 14px 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        .header h1 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .header .badge { background: var(--primary); color: #fff; padding: 4px 14px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; }
+        .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+        .toolbar button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .toolbar button:hover { background: var(--border); transform: translateY(-2px); }
+        .toolbar .primary { background: var(--primary); color: #fff; border: none; }
+        .toolbar .primary:hover { background: #0284c7; }
+        .toolbar .success { background: var(--success); color: #fff; border: none; }
+        .toolbar .success:hover { background: #16a34a; }
+
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
+        @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-header {
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header .count { font-weight: 400; font-size: 0.75rem; color: var(--muted); }
+        .card-body { padding: 16px 20px; flex: 1; overflow: auto; max-height: 800px; }
+
+        .diagrams-container { display: flex; flex-direction: column; gap: 16px; padding: 8px; background: #fafcff; border-radius: 12px; border: 1px solid var(--border); }
+        .diagram-section { background: #fff; border-radius: 10px; padding: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .diagram-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .diagram-title .badge { background: var(--primary); color: #fff; padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; }
+        .diagram-section svg { width: 100%; height: auto; display: block; }
+
+        .diagram-section svg .organ { cursor: pointer; transition: all 0.3s ease; stroke: #1e293b; stroke-width: 1.5; opacity: 0.95; }
+        .diagram-section svg .organ:hover { opacity: 1; filter: brightness(1.08) drop-shadow(0 0 6px rgba(14, 165, 233, 0.3)); }
+        .diagram-section svg .organ.selected { stroke: #0284c7; stroke-width: 3; filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.6)); opacity: 1; }
+        .diagram-section svg .organ.pathology { stroke: #dc2626; stroke-width: 3; filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.7)); animation: patho-pulse 1.2s ease-in-out infinite; opacity: 1; }
+        @keyframes patho-pulse { 0%, 100% { filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.3)); } 50% { filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.8)); } }
+
+        .diagram-section svg .organ-label { font-size: 11px; font-weight: 700; fill: #0f172a; pointer-events: none; user-select: none; }
+        .diagram-section svg .organ-label-small { font-size: 9px; font-weight: 600; fill: #475569; pointer-events: none; user-select: none; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 550px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+        .modal-header h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .modal-close {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--muted);
+            background: none;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        .modal-close:hover { background: var(--bg); color: var(--danger); }
+
+        .calculator {
+            background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%);
+            border: 2px solid #7c3aed;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .calculator .calc-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #5b21b6;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .calculator .calc-formula {
+            font-size: 0.75rem;
+            color: #6b7280;
+            background: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-family: monospace;
+            line-height: 1.5;
+        }
+        .calculator .calc-section {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+        }
+        .calculator .calc-section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #4b5563;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .calculator .calc-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .calculator .calc-input-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #4b5563;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .calculator .calc-input-group input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: #fff;
+        }
+        .calculator .calc-input-group input:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        .calculator .calc-input-full {
+            margin-bottom: 8px;
+        }
+        .calculator .calc-input-full label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #4b5563;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .calculator .calc-input-full input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: #fff;
+        }
+        .calculator .calc-input-full input:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        .calculator .calc-checkboxes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .calculator .calc-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #4b5563;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .calculator .calc-checkboxes label:hover {
+            background: #f3f4f6;
+        }
+        .calculator .calc-checkboxes input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .calculator .calc-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .calculator .calc-buttons button {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+        }
+        .calculator .btn-calc {
+            background: #7c3aed;
+            color: #fff;
+        }
+        .calculator .btn-calc:hover { background: #6d28d9; }
+        .calculator .btn-clear-calc {
+            background: #fff;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .calculator .calc-result {
+            display: none;
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 4px solid #7c3aed;
+        }
+        .calculator .calc-result.show { display: block; }
+        .calculator .calc-result .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.85rem;
+        }
+        .calculator .calc-result .result-label {
+            font-weight: 600;
+            color: #4b5563;
+        }
+        .calculator .calc-result .result-value {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .calculator .calc-result .result-value.good { color: #16a34a; }
+        .calculator .calc-result .result-value.bad { color: #dc2626; }
+        .calculator .calc-result .result-value.warning { color: #f97316; }
+        .calculator .calc-conclusion {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+        .calculator .calc-conclusion.benign {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+        .calculator .calc-conclusion.malignant {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .calculator .calc-conclusion.suspicious {
+            background: #ffedd5;
+            color: #9a3412;
+            border: 1px solid #fdba74;
+        }
+        .calculator .btn-add {
+            width: 100%;
+            padding: 10px;
+            background: #22c55e;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .calculator .btn-add:hover { background: #16a34a; }
+
+        .protocol-section { margin-bottom: 20px; }
+        .protocol-section-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+        .selected-pathology-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+        .selected-pathology-card.norma-card { border-left-color: var(--success); background: #f0fdf4; }
+        .selected-pathology-card.adenoma-card { border-left-color: #22c55e; background: #f0fdf4; }
+        .selected-pathology-card.malignant-card { border-left-color: #dc2626; background: #fef2f2; }
+        .selected-pathology-card.pheo-card { border-left-color: #f59e0b; background: #fffbeb; }
+        .selected-pathology-card .sp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+        .selected-pathology-card .sp-title { font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+        .selected-pathology-card .sp-remove { cursor: pointer; color: var(--muted); font-size: 1.1rem; background: none; border: none; padding: 2px 6px; border-radius: 4px; }
+        .selected-pathology-card .sp-remove:hover { background: var(--danger); color: #fff; }
+        .selected-pathology-card .sp-parts { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; }
+        .selected-pathology-card .sp-parts span { display: inline-block; background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; margin-right: 4px; margin-bottom: 4px; }
+        .selected-pathology-card .sp-size { font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; padding: 4px 8px; border-radius: 6px; display: inline-block; background: #e0f2fe; color: #0369a1; }
+        .selected-pathology-card .sp-density { font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; padding: 4px 8px; border-radius: 6px; display: inline-block; }
+        .selected-pathology-card .sp-density.low { color: #16a34a; background: #dcfce7; }
+        .selected-pathology-card .sp-density.high { color: #dc2626; background: #fee2e2; }
+        .selected-pathology-card .sp-washout { font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; padding: 4px 8px; border-radius: 6px; display: inline-block; }
+        .selected-pathology-card .sp-washout.fast { color: #16a34a; background: #dcfce7; }
+        .selected-pathology-card .sp-washout.slow { color: #dc2626; background: #fee2e2; }
+        .selected-pathology-card .sp-features { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; font-style: italic; }
+
+        .ct-description { width: 100%; min-height: 100px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; line-height: 1.6; font-family: 'Segoe UI', sans-serif; background: #fff; color: var(--text); resize: vertical; }
+        .ct-description:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
+
+        .final-protocol { width: 100%; min-height: 220px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; line-height: 1.7; font-family: 'Segoe UI', monospace; background: #fafcff; color: var(--text); resize: vertical; margin-top: 12px; }
+        .final-protocol:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
+
+        .status-bar { margin-top: 24px; padding: 12px 20px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+
+        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: #fff; padding: 12px 24px; border-radius: 10px; box-shadow: var(--shadow); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; z-index: 10001; font-size: 0.9rem; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 700px) {
+            body { padding: 12px; }
+            .header { flex-direction: column; align-items: stretch; }
+            .toolbar { justify-content: stretch; }
+            .toolbar button { flex: 1; justify-content: center; font-size: 0.7rem; padding: 6px 10px; }
+            .card-body { max-height: 500px; padding: 12px; }
+            .diagram-section svg .organ-label { font-size: 9px; }
+        }
+        @media print {
+            .toolbar, .status-bar, .modal-overlay { display: none !important; }
+            .diagram-section svg .organ { cursor: default !important; }
+            .diagram-section svg .organ.selected { stroke: #000 !important; stroke-width: 2.5 !important; filter: none !important; }
+            .diagram-section svg .organ.pathology { stroke: #000 !important; stroke-width: 3 !important; filter: none !important; animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div>
+            <h1>🫘 <span>Надпочечники</span></h1>
+            <span class="badge">КТ диагностика</span>
+        </div>
+        <div class="toolbar">
+            <button class="success" onclick="resetAll()">🔄 Сбросить</button>
+            <button class="primary" onclick="generateFinalProtocol()">📋 Итоговый протокол</button>
+            <button onclick="copyToClipboard()">📋 Копировать</button>
+            <button onclick="window.print()">🖨 Печать</button>
+            <button class="success" onclick="sendToParent()" style="background:linear-gradient(135deg,#22c55e,#16a34a);">📥 Вставить в КТ-Журнал</button>
+        </div>
+    </header>
+
+    <div class="main-grid">
+
+        <div class="card">
+            <div class="card-header">
+                <span>📍 Анатомия надпочечников (кликни на часть)</span>
+                <span class="count" id="organsCount">Выбрано: 0</span>
+            </div>
+            <div class="card-body">
+                <div class="diagrams-container">
+
+                    <div class="diagram-section">
+                        <div class="diagram-title"><span class="badge">1</span><span>Надпочечники (Y-образная форма)</span></div>
+                        <svg viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg">
+                            <g id="right_adrenal">
+                                <path class="organ" data-organ="right_body" 
+                                      d="M180 120 Q200 105 220 120 Q230 140 220 160 Q200 170 180 160 Q170 140 180 120 Z" 
+                                      fill="#fbbf24"/>
+                                <text class="organ-label-small" x="190" y="145">Тело</text>
+                                <path class="organ" data-organ="right_medial_leg" 
+                                      d="M220 120 Q250 110 280 115 Q295 125 290 140 Q275 145 250 140 Q230 135 220 120 Z" 
+                                      fill="#fcd34d"/>
+                                <text class="organ-label-small" x="240" y="130">Медиальная</text>
+                                <text class="organ-label-small" x="245" y="142">ножка</text>
+                                <path class="organ" data-organ="right_lateral_leg" 
+                                      d="M180 120 Q150 110 120 115 Q105 125 110 140 Q125 145 150 140 Q170 135 180 120 Z" 
+                                      fill="#fde047"/>
+                                <text class="organ-label-small" x="120" y="130">Латеральная</text>
+                                <text class="organ-label-small" x="125" y="142">ножка</text>
+                                <text class="organ-label" x="165" y="195" style="font-size:12px;">ПРАВЫЙ</text>
+                            </g>
+
+                            <g id="left_adrenal">
+                                <path class="organ" data-organ="left_body" 
+                                      d="M480 120 Q500 105 520 120 Q530 140 520 160 Q500 170 480 160 Q470 140 480 120 Z" 
+                                      fill="#fbbf24"/>
+                                <text class="organ-label-small" x="490" y="145">Тело</text>
+                                <path class="organ" data-organ="left_medial_leg" 
+                                      d="M480 120 Q450 110 420 115 Q405 125 410 140 Q425 145 450 140 Q470 135 480 120 Z" 
+                                      fill="#fcd34d"/>
+                                <text class="organ-label-small" x="420" y="130">Медиальная</text>
+                                <text class="organ-label-small" x="425" y="142">ножка</text>
+                                <path class="organ" data-organ="left_lateral_leg" 
+                                      d="M520 120 Q550 110 580 115 Q595 125 590 140 Q575 145 550 140 Q530 135 520 120 Z" 
+                                      fill="#fde047"/>
+                                <text class="organ-label-small" x="540" y="130">Латеральная</text>
+                                <text class="organ-label-small" x="545" y="142">ножка</text>
+                                <text class="organ-label" x="465" y="195" style="font-size:12px;">ЛЕВЫЙ</text>
+                            </g>
+
+                            <rect x="340" y="80" width="20" height="180" fill="#e2e8f0" opacity="0.5" rx="4" pointer-events="none"/>
+                            <text class="organ-label-small" x="335" y="275" fill="#64748b">Позвоночник</text>
+
+                            <rect x="280" y="20" width="14" height="14" fill="#fbbf24" rx="2"/>
+                            <text x="300" y="31" font-size="9" fill="#64748b">Тело надпочечника</text>
+                            <rect x="280" y="40" width="14" height="14" fill="#fcd34d" rx="2"/>
+                            <text x="300" y="51" font-size="9" fill="#64748b">Медиальная ножка</text>
+                            <rect x="280" y="60" width="14" height="14" fill="#fde047" rx="2"/>
+                            <text x="300" y="71" font-size="9" fill="#64748b">Латеральная ножка</text>
+                        </svg>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>📝 Описания патологий и протокол</span>
+                <span class="count" id="pathologyCount">Патологий: 0</span>
+            </div>
+            <div class="card-body">
+                <div class="protocol-section">
+                    <div class="protocol-section-title">🎯 Выбранные патологии</div>
+                    <div id="selectedPathologiesContainer">
+                        <div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Кликни на часть надпочечника слева → откроется калькулятор</div>
+                    </div>
+                </div>
+                <div class="protocol-section" style="margin-top: 20px;">
+                    <div class="protocol-section-title">📋 Итоговый протокол</div>
+                    <textarea class="final-protocol" id="finalProtocol">НАДПОЧЕЧНИКИ:
+  Правый надпочечник: обычной формы и размеров, без очаговых образований.
+  Левый надпочечник: обычной формы и размеров, без очаговых образований.
+  Плотность паренхимы не изменена.
+
+ЗАКЛЮЧЕНИЕ:
+  Патологических изменений надпочечников не выявлено.</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="calculatorModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Калькулятор вымывания</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="calculator">
+                <div class="calc-title">🧮 Диагностика образования надпочечника</div>
+                <div class="calc-formula">
+                    <b>АКВ</b> = [(Контраст_60с − Контраст_15мин) / (Контраст_60с − Натив)] × 100%<br>
+                    <b>ОКВ</b> = [(Контраст_60с − Контраст_15мин) / Контраст_60с] × 100%<br>
+                    <span style="color:#7c3aed;">Критерии аденомы: АКВ > 60% или ОКВ > 40%</span>
+                </div>
+
+                <div class="calc-section">
+                    <div class="calc-section-title">📏 Размеры образования (мм)</div>
+                    <div class="calc-input-group">
+                        <div>
+                            <label>Длина (мм):</label>
+                            <input type="number" id="calcSize1" placeholder="25" step="1"/>
+                        </div>
+                        <div>
+                            <label>Ширина (мм):</label>
+                            <input type="number" id="calcSize2" placeholder="18" step="1"/>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calc-section">
+                    <div class="calc-section-title">📊 Плотность (HU)</div>
+                    <div class="calc-input-group">
+                        <div>
+                            <label>Нативная:</label>
+                            <input type="number" id="calcNative" placeholder="25" step="0.1"/>
+                        </div>
+                        <div>
+                            <label>Контраст 60 сек:</label>
+                            <input type="number" id="calcContrast60" placeholder="120" step="0.1"/>
+                        </div>
+                    </div>
+                    <div class="calc-input-full">
+                        <label>Контраст 15 мин:</label>
+                        <input type="number" id="calcContrast15" placeholder="45" step="0.1"/>
+                    </div>
+                </div>
+
+                <div class="calc-section">
+                    <div class="calc-section-title">🔍 Дополнительные характеристики</div>
+                    <div class="calc-checkboxes">
+                        <label><input type="checkbox" id="featureHemorrhage"/> Кровоизлияние (повышенная плотность)</label>
+                        <label><input type="checkbox" id="featureCystic"/> Кистозная дегенерация/некроз (пониженная плотность)</label>
+                        <label><input type="checkbox" id="featureCalcification"/> Кальцинаты</label>
+                        <label><input type="checkbox" id="featureNecrosis"/> Некроз</label>
+                    </div>
+                </div>
+
+                <div class="calc-buttons">
+                    <button class="btn-calc" onclick="calculateWashout()">📊 Рассчитать</button>
+                    <button class="btn-clear-calc" onclick="clearCalculator()">Очистить</button>
+                </div>
+                <div class="calc-result" id="calcResult">
+                    <div class="result-row">
+                        <span class="result-label">Абсолютное вымывание (АКВ):</span>
+                        <span class="result-value" id="resultAKV">—</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Относительное вымывание (ОКВ):</span>
+                        <span class="result-value" id="resultOKV">—</span>
+                    </div>
+                    <div class="calc-conclusion" id="calcConclusion"></div>
+                    <button class="btn-add" onclick="addResultToProtocol()">✅ Добавить в протокол</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span>💡 <span id="statusMessage">Кликни на часть надпочечника → откроется калькулятор</span></span>
+        <span>📌 <span id="statusCount">Частей: 0 | Патологий: 0</span></span>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const organNames = {
+                right_body: 'теле правого надпочечника',
+                right_medial_leg: 'медиальной ножке правого надпочечника',
+                right_lateral_leg: 'латеральной ножке правого надпочечника',
+                left_body: 'теле левого надпочечника',
+                left_medial_leg: 'медиальной ножке левого надпочечника',
+                left_lateral_leg: 'латеральной ножке левого надпочечника'
+            };
+
+            const organNamesShort = {
+                right_body: 'Правый надпочечник: тело',
+                right_medial_leg: 'Правый надпочечник: медиальная ножка',
+                right_lateral_leg: 'Правый надпочечник: латеральная ножка',
+                left_body: 'Левый надпочечник: тело',
+                left_medial_leg: 'Левый надпочечник: медиальная ножка',
+                left_lateral_leg: 'Левый надпочечник: латеральная ножка'
+            };
+
+            const state = {
+                selectedOrgans: new Set(),
+                pathologies: {},
+                currentOrgan: null,
+                currentCalcResult: null
+            };
+
+            const organs = document.querySelectorAll('.organ');
+            const organsCount = document.getElementById('organsCount');
+            const pathologyCount = document.getElementById('pathologyCount');
+            const statusMessage = document.getElementById('statusMessage');
+            const statusCount = document.getElementById('statusCount');
+            const toast = document.getElementById('toast');
+            const modal = document.getElementById('calculatorModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const selectedPathologiesContainer = document.getElementById('selectedPathologiesContainer');
+            const finalProtocol = document.getElementById('finalProtocol');
+
+            function showToast(message) {
+                toast.textContent = message;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            }
+
+            function openCalculator(organId) {
+                state.currentOrgan = organId;
+                modalTitle.textContent = 'Диагностика: ' + organNamesShort[organId];
+                modal.classList.add('show');
+                clearCalculator();
+            }
+
+            window.closeModal = function() {
+                modal.classList.remove('show');
+                state.currentOrgan = null;
+                state.currentCalcResult = null;
+            }
+
+            window.calculateWashout = function() {
+                const native = parseFloat(document.getElementById('calcNative').value);
+                const contrast60 = parseFloat(document.getElementById('calcContrast60').value);
+                const contrast15 = parseFloat(document.getElementById('calcContrast15').value);
+                const size1 = parseFloat(document.getElementById('calcSize1').value);
+                const size2 = parseFloat(document.getElementById('calcSize2').value);
+
+                const features = {
+                    hemorrhage: document.getElementById('featureHemorrhage').checked,
+                    cystic: document.getElementById('featureCystic').checked,
+                    calcification: document.getElementById('featureCalcification').checked,
+                    necrosis: document.getElementById('featureNecrosis').checked
+                };
+
+                if (isNaN(native)) {
+                    showToast('⚠️ Введи нативную плотность');
+                    return;
+                }
+
+                let diagnosis = '';
+                let description = '';
+                let conclusionClass = '';
+                let akv = null;
+                let okv = null;
+
+                if (isNaN(contrast60) || isNaN(contrast15)) {
+                    if (native < -20) {
+                        diagnosis = 'Миелолипома';
+                        description = `Образование с отрицательной плотностью (${native} HU), характерной для жировой ткани.`;
+                        conclusionClass = 'benign';
+                    } else if (native < 10) {
+                        diagnosis = 'Аденома (богатая жиром)';
+                        description = `Образование низкой плотности (${native} HU <10 HU). Диагноз аденомы установлен без контрастирования.`;
+                        conclusionClass = 'benign';
+                    } else {
+                        diagnosis = 'Образование >10 HU (требуется контраст)';
+                        description = `Плотность образования ${native} HU (>10 HU). Нативной КТ недостаточно для дифференциальной диагностики.`;
+                        conclusionClass = 'suspicious';
+                    }
+                } else {
+                    if (contrast60 <= native) {
+                        showToast('⚠️ Контраст 60с должен быть больше нативной плотности');
+                        return;
+                    }
+
+                    akv = ((contrast60 - contrast15) / (contrast60 - native)) * 100;
+                    okv = ((contrast60 - contrast15) / contrast60) * 100;
+
+                    if (akv > 60 || okv > 40) {
+                        diagnosis = 'Аденома (бедная жиром)';
+                        description = `Аденома с плотностью ${native} HU. Быстрое вымывание: АКВ ${akv.toFixed(1)}%, ОКВ ${okv.toFixed(1)}%.`;
+                        conclusionClass = 'benign';
+                    } else if (contrast60 > 130) {
+                        diagnosis = 'Феохромоцитома (подозрение)';
+                        description = `Интенсивное накопление контраста (${contrast60} HU >130 HU). АКВ ${akv.toFixed(1)}%, ОКВ ${okv.toFixed(1)}%.`;
+                        conclusionClass = 'suspicious';
+                    } else {
+                        diagnosis = 'Метастаз / Адренокортикальный рак (подозрение)';
+                        description = `Медленное вымывание: АКВ ${akv.toFixed(1)}%, ОКВ ${okv.toFixed(1)}%. Нативная плотность ${native} HU.`;
+                        conclusionClass = 'malignant';
+                    }
+                }
+
+                let sizeText = '';
+                if (!isNaN(size1) && !isNaN(size2)) {
+                    sizeText = `Размеры: ${size1}×${size2} мм. `;
+                }
+
+                let featuresText = '';
+                const featureList = [];
+                if (features.hemorrhage) featureList.push('участки кровоизлияния (повышенная плотность)');
+                if (features.cystic) featureList.push('участки кистозной дегенерации/некроза (пониженная плотность)');
+                if (features.calcification) featureList.push('кальцинаты');
+                if (features.necrosis) featureList.push('некроз');
+                
+                if (featureList.length > 0) {
+                    featuresText = 'Содержит ' + featureList.join(', ') + '. ';
+                }
+
+                const fullDescription = sizeText + description + ' ' + featuresText;
+
+                state.currentCalcResult = {
+                    diagnosis: diagnosis,
+                    description: fullDescription,
+                    native: native,
+                    contrast60: contrast60,
+                    contrast15: contrast15,
+                    akv: akv,
+                    okv: okv,
+                    size1: size1,
+                    size2: size2,
+                    features: features
+                };
+
+                const resultDiv = document.getElementById('calcResult');
+                const akvEl = document.getElementById('resultAKV');
+                const okvEl = document.getElementById('resultOKV');
+                const conclusionEl = document.getElementById('calcConclusion');
+
+                if (akv !== null) {
+                    akvEl.textContent = akv.toFixed(1) + '%';
+                    okvEl.textContent = okv.toFixed(1) + '%';
+                    akvEl.className = 'result-value ' + (akv > 60 ? 'good' : 'bad');
+                    okvEl.className = 'result-value ' + (okv > 40 ? 'good' : 'bad');
+                } else {
+                    akvEl.textContent = '—';
+                    okvEl.textContent = '—';
+                    akvEl.className = 'result-value';
+                    okvEl.className = 'result-value';
+                }
+
+                conclusionEl.textContent = diagnosis + '\n\n' + fullDescription;
+                conclusionEl.className = 'calc-conclusion ' + conclusionClass;
+                resultDiv.classList.add('show');
+                showToast('📊 Расчёт выполнен');
+            }
+
+            window.addResultToProtocol = function() {
+                if (!state.currentCalcResult || !state.currentOrgan) {
+                    showToast('⚠️ Сначала проведи расчёт');
+                    return;
+                }
+
+                const organId = state.currentOrgan;
+                const result = state.currentCalcResult;
+                const uniqueKey = organId + '_' + result.diagnosis;
+
+                if (!state.pathologies[uniqueKey]) {
+                    state.pathologies[uniqueKey] = {
+                        organ: organId,
+                        diagnosis: result.diagnosis,
+                        description: result.description,
+                        native: result.native,
+                        contrast60: result.contrast60,
+                        contrast15: result.contrast15,
+                        akv: result.akv,
+                        okv: result.okv,
+                        size1: result.size1,
+                        size2: result.size2,
+                        features: result.features
+                    };
+                }
+
+                state.selectedOrgans.add(organId);
+                organs.forEach(o => {
+                    if (o.dataset.organ === organId) {
+                        o.classList.add('selected', 'pathology');
+                    }
+                });
+
+                closeModal();
+                updateUI();
+                showToast('✅ Добавлено в протокол');
+            }
+
+            window.clearCalculator = function() {
+                document.getElementById('calcNative').value = '';
+                document.getElementById('calcContrast60').value = '';
+                document.getElementById('calcContrast15').value = '';
+                document.getElementById('calcSize1').value = '';
+                document.getElementById('calcSize2').value = '';
+                document.getElementById('featureHemorrhage').checked = false;
+                document.getElementById('featureCystic').checked = false;
+                document.getElementById('featureCalcification').checked = false;
+                document.getElementById('featureNecrosis').checked = false;
+                document.getElementById('calcResult').classList.remove('show');
+                state.currentCalcResult = null;
+            }
+
+            organs.forEach(organ => {
+                organ.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const organId = this.dataset.organ;
+                    if (organId) openCalculator(organId);
+                });
+            });
+
+            document.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            window.removePathology = function(key) {
+                if (!state.pathologies[key]) return;
+                const organId = state.pathologies[key].organ;
+                state.selectedOrgans.delete(organId);
+                delete state.pathologies[key];
+                
+                let stillHas = false;
+                for (const pk in state.pathologies) {
+                    if (state.pathologies[pk].organ === organId) { stillHas = true; break; }
+                }
+                if (!stillHas) {
+                    organs.forEach(o => {
+                        if (o.dataset.organ === organId) o.classList.remove('selected', 'pathology');
+                    });
+                }
+                updateUI();
+            }
+
+            window.updatePathologyDescription = function(key, newDesc) {
+                if (state.pathologies[key]) {
+                    state.pathologies[key].description = newDesc;
+                    updateFinalProtocol();
+                }
+            }
+
+            function updateUI() {
+                organsCount.textContent = 'Выбрано: ' + state.selectedOrgans.size;
+                const totalPath = Object.keys(state.pathologies).length;
+                pathologyCount.textContent = 'Патологий: ' + totalPath;
+                statusCount.textContent = 'Частей: ' + state.selectedOrgans.size + ' | Патологий: ' + totalPath;
+
+                if (totalPath === 0) {
+                    selectedPathologiesContainer.innerHTML = '<div style="color: var(--muted); font-size: 0.85rem; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 10px;">Кликни на часть надпочечника слева</div>';
+                } else {
+                    let html = '';
+                    for (const pk in state.pathologies) {
+                        const p = state.pathologies[pk];
+                        let cardClass = '';
+                        if (p.diagnosis.includes('Аденома') || p.diagnosis.includes('Миелолипома')) cardClass = 'adenoma-card';
+                        else if (p.diagnosis.includes('Метастаз') || p.diagnosis.includes('рак')) cardClass = 'malignant-card';
+                        else if (p.diagnosis.includes('Феохромоцитома')) cardClass = 'pheo-card';
+
+                        html += '<div class="selected-pathology-card ' + cardClass + '">';
+                        html += '<div class="sp-header"><div class="sp-title">' + p.diagnosis + '</div>';
+                        html += '<button class="sp-remove" onclick="removePathology(\'' + pk + '\')" title="Удалить">×</button></div>';
+                        html += '<div class="sp-parts"><span>' + organNamesShort[p.organ] + '</span></div>';
+                        
+                        if (!isNaN(p.size1) && !isNaN(p.size2)) {
+                            html += '<div class="sp-size">📏 ' + p.size1 + '×' + p.size2 + ' мм</div>';
+                        }
+                        
+                        html += '<div class="sp-density ' + (p.native < 10 ? 'low' : 'high') + '">📊 Натив: ' + p.native + ' HU</div>';
+                        
+                        if (p.akv !== null) {
+                            html += '<div class="sp-washout ' + (p.akv > 60 ? 'fast' : 'slow') + '">💧 АКВ: ' + p.akv.toFixed(1) + '%, ОКВ: ' + p.okv.toFixed(1) + '%</div>';
+                        }
+                        
+                        const featureList = [];
+                        if (p.features.hemorrhage) featureList.push('кровоизлияние');
+                        if (p.features.cystic) featureList.push('кистозная дегенерация');
+                        if (p.features.calcification) featureList.push('кальцинаты');
+                        if (p.features.necrosis) featureList.push('некроз');
+                        if (featureList.length > 0) {
+                            html += '<div class="sp-features">🔍 ' + featureList.join(', ') + '</div>';
+                        }
+                        
+                        html += '<textarea class="ct-description" oninput="updatePathologyDescription(\'' + pk + '\', this.value)">' + p.description + '</textarea>';
+                        html += '</div>';
+                    }
+                    selectedPathologiesContainer.innerHTML = html;
+                }
+                updateFinalProtocol();
+            }
+
+            function updateFinalProtocol() {
+                const pathEntries = Object.entries(state.pathologies);
+                
+                let text = 'НАДПОЧЕЧНИКИ:\n';
+                if (pathEntries.length === 0) {
+                    text += '  Правый надпочечник: обычной формы и размеров, без очаговых образований.\n';
+                    text += '  Левый надпочечник: обычной формы и размеров, без очаговых образований.\n';
+                    text += '  Плотность паренхимы не изменена.\n\n';
+                } else {
+                    const rightFindings = [], leftFindings = [];
+                    
+                    pathEntries.forEach(([pk, p]) => {
+                        const organName = organNames[p.organ];
+                        const isRight = organName.includes('правого');
+                        const isLeft = organName.includes('левого');
+                        
+                        let sizeText = '';
+                        if (!isNaN(p.size1) && !isNaN(p.size2)) {
+                            sizeText = ' размерами ' + p.size1 + '×' + p.size2 + ' мм';
+                        }
+                        
+                        let finding = 'В ' + organName + ' образование' + sizeText + ', характерное для ' + p.diagnosis.toLowerCase();
+                        
+                        const featureList = [];
+                        if (p.features.hemorrhage) featureList.push('с участками кровоизлияния');
+                        if (p.features.cystic) featureList.push('с участками кистозной дегенерации');
+                        if (p.features.calcification) featureList.push('с кальцинатами');
+                        if (p.features.necrosis) featureList.push('с некрозом');
+                        
+                        if (featureList.length > 0) {
+                            finding += ' ' + featureList.join(', ');
+                        }
+                        
+                        if (p.akv !== null) {
+                            finding += ' (АКВ ' + p.akv.toFixed(1) + '%, ОКВ ' + p.okv.toFixed(1) + '%)';
+                        }
+                        
+                        finding += '.';
+                        
+                        if (isRight) rightFindings.push(finding);
+                        if (isLeft) leftFindings.push(finding);
+                    });
+                    
+                    if (rightFindings.length > 0) text += '  ' + rightFindings.join(' ') + '\n';
+                    if (leftFindings.length > 0) text += '  ' + leftFindings.join(' ') + '\n';
+                    text += '\n';
+                }
+
+                text += 'ЗАКЛЮЧЕНИЕ:\n';
+                if (pathEntries.length === 0) {
+                    text += '  Патологических изменений надпочечников не выявлено.\n';
+                } else {
+                    const adenomas = [], malignants = [], pheos = [], others = [];
+                    pathEntries.forEach(([pk, p]) => {
+                        if (p.diagnosis.includes('Аденома') || p.diagnosis.includes('Миелолипома')) adenomas.push(p.diagnosis);
+                        else if (p.diagnosis.includes('Метастаз') || p.diagnosis.includes('рак')) malignants.push(p.diagnosis);
+                        else if (p.diagnosis.includes('Феохромоцитома')) pheos.push(p.diagnosis);
+                        else others.push(p.diagnosis);
+                    });
+                    
+                    const allFindings = [...adenomas, ...malignants, ...pheos, ...others];
+                    text += '  ' + allFindings.join('; ') + '.\n';
+                    
+                    if (malignants.length > 0 || pheos.length > 0) {
+                        text += '  Рекомендовано: консультация эндокринолога/онколога, лабораторное обследование (гормоны), МРТ надпочечников.\n';
+                    } else if (adenomas.length > 0) {
+                        text += '  Рекомендовано: консультация эндокринолога, контроль КТ через 6-12 месяцев при образовании >1 см.\n';
+                    } else {
+                        text += '  Рекомендовано: консультация эндокринолога.\n';
+                    }
+                }
+                finalProtocol.value = text;
+            }
+
+            window.generateFinalProtocol = function() {
+                updateFinalProtocol();
+                showToast('📋 Протокол сформирован');
+                finalProtocol.focus();
+                finalProtocol.select();
+            }
+
+            window.copyToClipboard = function() {
+                finalProtocol.select();
+                document.execCommand('copy');
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(finalProtocol.value).then(() => showToast('✅ Скопировано!')).catch(() => showToast('✅ Скопировано!'));
+                } else {
+                    showToast('✅ Скопировано!');
+                }
+            }
+
+            window.resetAll = function() {
+                if (!confirm('Очистить всё?')) return;
+                state.selectedOrgans.clear();
+                state.pathologies = {};
+                organs.forEach(o => o.classList.remove('selected', 'pathology'));
+                updateUI();
+                showToast('🔄 Сброшено');
+            }
+
+            updateUI();
+        })();
+
+// ============================================================
+// ОТПРАВКА РЕЗУЛЬТАТА В РОДИТЕЛЬСКОЕ ОКНО (КТ-Журнал)
+// ============================================================
+function sendToParent() {
+    let text = '';
+
+    const finalEl = document.getElementById('finalProtocol');
+    if (finalEl) {
+        text = finalEl.value || finalEl.textContent || '';
+    }
+
+    const aspectEl = document.getElementById('protocol-text');
+    if (!text && aspectEl) {
+        text = aspectEl.textContent || '';
+    }
+
+    if (!text.trim()) {
+        alert('⚠️ Сначала сформируйте протокол (нажмите «📋 Итоговый протокол»)');
+        return;
+    }
+
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+            type: 'widget-result',
+            text: text
+        }, '*');
+    } else {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Протокол скопирован в буфер обмена');
+            }).catch(() => {
+                alert('⚠️ Не удалось скопировать');
+            });
+        } else {
+            alert('✅ Протокол готов: ' + text.substring(0, 100) + '...');
+        }
+    }
+}
+    </script>
+</body>
+</html>
